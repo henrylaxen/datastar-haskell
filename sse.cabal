@@ -1,0 +1,71 @@
+cabal-version:      3.0
+name:               sse
+version:            0.1.0.0
+synopsis:           Interface for Server Sent Events using the DataStar framework
+description:        See https://data-star.dev/ for full information
+                    about the wonderful new (2024) backend framework,
+                    almost totally powered by the frontend.
+license:            NONE
+author:             Henry Laxen
+maintainer:         nadine.and.henry@pobox.com
+category:           Language
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+
+common warnings
+  ghc-options:
+    -O2
+    -Wall
+    -funbox-strict-fields
+    -fwarn-tabs
+    -threaded
+    -ddump-minimal-imports
+
+common deps
+  build-depends:
+        base
+      , bytestring
+      , data-default
+      , here
+      , html-entities
+      , io-streams
+      , relude
+      , snap
+      , snap-core
+      , time
+
+common default-extensions
+  default-extensions:
+        NoImplicitPrelude
+      , OverloadedStrings
+      , QuasiQuotes
+      , TemplateHaskell
+      , TypeSynonymInstances
+
+library
+    import:           deps,warnings,default-extensions
+    exposed-modules:
+        Constants
+      , SSE
+      , Sender.Snap
+    hs-source-dirs:   src
+    default-language: Haskell2010
+
+Executable sse
+  import:  deps,warnings,default-extensions
+  default-language: Haskell2010
+  build-depends: sse, warp, wai, http-types, wai-app-static, filepath
+  other-modules: SnapMain, WarpMain
+  hs-source-dirs: app
+  main-is: Main.hs
+
+test-suite ServerSentEventGenerator-test
+    import:           deps,warnings,default-extensions
+    default-language: Haskell2010
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          Main.hs
+    build-depends:
+        base ^>=4.19.1.0
+      , sse
+      , silently
