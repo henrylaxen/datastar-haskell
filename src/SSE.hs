@@ -1,9 +1,9 @@
 module SSE (
-    Command(..)
+    EventType(..)
   , Options(..)
+  , DsString  -- ^ A type synonym for LazyByteString
   , makeSSE
   , sseHeaders
-  , DsString 
   ) where
 
 import Constants
@@ -11,20 +11,52 @@ import Data.Default ( Default(..) )
 import Data.String.Here.Interpolated ( i )
 import Relude
 
--- class Monad m => SSEapp m a | m -> a where
---   sseOpen  :: (a -> IO ()) -> m ()
-  
+-- | ServerSendEventData is the data type that datastar works with internally.
+--
+--      The DataLines field varies depending on the EventType.  Examples are:
+--
+-- *    data: fragments <div id="someId">with content</div>
+-- *    data: signals {"show":true,"input":"Test","user":{"name":"","email":""}}
+-- *    data: paths user.name
+-- *    data: script window.location = "https://data-star.dev"
+--
+--      the Options vary, again depending on the EventType. Examples are:
+--
+-- *        - selector: #target
+-- *        - useViewTransition: true
+-- *        - onlyIfMissing: true
+-- *        - retry: 300
+-- *        - settleDuration: 200
+
 data ServerSendEventData = ServerSendEventData {
     _sEventType     :: DsString
   , _sDataLines     :: [DsString]
   , _sOptions       ::  Maybe Options }
   deriving Show
-  
+
+-- | sseHeaders are the headers that must be sent to the browser in order to start sending
+-- a server sent event stream
+
 sseHeaders :: LByteString
 sseHeaders = [i|HTTP/1.1 200 OK
 cache-control: no-cache
 connection: keep-alive
 Content-type: text/event-stream; charset=utf-8|] <> "\n\n"
+
+-- | Options is the datatype for all available options for the various datastar commands
+--   Depending on the EventType, the options are:
+--
+--  *  EventId
+--  *  Selector
+--  *  MergeMode
+--  *  RetryDuration
+--  *  SettleDuration
+--  *  UseViewTransition
+--  *  OnlyIfMissing
+--  *  AutoRemove
+--  *  Attributes
+--  *  All options fields are prefixed with a _o to keep the namespace separate
+--
 
 data Options = Options {
     _oEventId                   :: Maybe DsString
@@ -41,7 +73,16 @@ data Options = Options {
 instance Default Options where
   def = Options Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
-data Command =
+-- | EventType is the datatype of the datastar events.
+--   The EventType is required and wiil be one of the haskell data contructors:
+--
+--       *  MergeFragments            --> "datastar-merge-fragments"
+--       *  RemoveFragments           --> "datastar-remove-fragments"
+--       *  MergeSignals              --> "datastar-merge-signals"
+--       *  RemoveSignals             --> "datastar-remove-signals"
+--       *  ExecuteScript             --> "datastar-execute-script"
+
+data EventType =
     MergeFragments
   | RemoveFragments
   | MergeSignals
@@ -49,20 +90,29 @@ data Command =
   | ExecuteScript
   deriving Show
 
-check :: Command -> [DsString] -> Maybe Options -> Either DsString (NonEmpty DsString)
+-- | check returns an Either. It checks the arguments to be passed to makeSSE for
+--   existance
+
+check :: EventType -> [DsString] -> Maybe Options -> Either DsString (NonEmpty DsString)
 check cmd [] mbOptions     = Left (showError "Empty List error" cmd mbOptions)
-check cmd (x:xs) mbOptions = if x == mempty 
+check cmd (x:xs) mbOptions = if x == mempty
   then Left  (showError"NoString error" cmd mbOptions)
   else Right (x :| xs)
 
-showError :: DsString -> Command -> Maybe Options -> DsString
-showError err cmd mbOptions = mconcat [ err, " Command: ", show cmd, " Options: ", show mbOptions]
+-- | showError display a more user friendly error message if check returns a Left
+
+showError :: DsString -> EventType -> Maybe Options -> DsString
+showError err cmd mbOptions = mconcat [ err, " EventType: ", show cmd, " Options: ", show mbOptions]
 
 newtype SSEexception = SSEexception DsString
   deriving Show
 instance Exception SSEexception
 
-makeSSE :: Command -> [DsString] -> Maybe Options -> DsString
+-- | makeSSE is the main function you will use to create datastar events. It with throw an error
+--   if the arguments are not correct, or a LazyByteString (internally called a DsString) if
+--   the arguments check out.  This string may then be sent to the browser
+
+makeSSE :: EventType -> [DsString] -> Maybe Options -> DsString
 makeSSE cmd l mbOptions = either (bug . SSEexception) go (check cmd l mbOptions)
   where
    go n = case cmd of
@@ -72,6 +122,9 @@ makeSSE cmd l mbOptions = either (bug . SSEexception) go (check cmd l mbOptions)
     RemoveSignals   ->   removeSignals l mbOptions
     ExecuteScript   ->   executeScript (head n) mbOptions
 
+-- I need the class to lower case the show instance of Bools, and remove
+-- the show instance of Nothings
+
 class Show a => DsShow a where
   dsShow :: a -> DsString
   dsShow = show
@@ -80,12 +133,14 @@ instance DsShow Int  where
 instance DsShow DsString where
   dsShow = id
 instance DsShow Bool where
-  dsShow True = "true"
+  dsShow True  = "true"
   dsShow False = "false"
 
 instance DsShow a => DsShow (Maybe a) where
   dsShow Nothing  = ""
   dsShow (Just a) = dsShow a
+
+-- A helper function to correctly format the various Options that are available
 
 formatOptions :: Maybe Options -> DsString
 formatOptions = maybe "" go
@@ -103,6 +158,8 @@ formatOptions = maybe "" go
      , dsWithDefault o _oAttributes        cDefaultAttributes            cAttributes
      ]
 
+-- The rest of these functions are used internally to do the formatting
+
 withSpace :: DsString -> DsString -> DsString
 withSpace x y = mconcat [ x, " ", y]
 
@@ -110,10 +167,10 @@ withNewLine :: DsString -> DsString -> DsString
 withNewLine x y = mconcat [ x, " ", y, "\n"]
 
 dsWithDefault :: (Eq a, DsShow a) => Options -> (Options -> Maybe a) -> a -> DsString -> DsString
-dsWithDefault opts field defValue eventType =
+dsWithDefault opts field defValue subCommand =
   case field opts of
     Nothing -> ""
-    Just x -> if x == defValue then "" else mconcat [eventType, ": ", dsShow x, "\n"]
+    Just x -> if x == defValue then "" else mconcat [subCommand, ": ", dsShow x, "\n"]
 
 formatSSED :: ServerSendEventData -> DsString
 formatSSED ssed = mconcat [

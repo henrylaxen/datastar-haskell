@@ -6,7 +6,7 @@ import Data.String.Here.Interpolated ( i )
 import Data.Text ( replace )
 import Data.Time ( getCurrentTime )
 import Relude
-import SSE ( makeSSE, Command(MergeFragments) )
+import SSE ( makeSSE, EventType(MergeFragments) )
 import Sender.Snap ( sseOpen, sseWrite, SSEstream )
 import Snap
 import Snap.Util.FileServe ( serveDirectory )
@@ -42,9 +42,9 @@ snapMain = do
 
 site :: Text -> Snap ()
 site index =
-    ifTop (writeText $ index) <|>
+    ifTop (writeText index) <|>
     route [
         ("favicon.ico" , return ())
       , ("feed"        , handlerFeed)
-      ] <|> (serveDirectory "www")
+      ] <|> serveDirectory "www"
 

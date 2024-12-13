@@ -20,11 +20,11 @@ cAttributes, cAutoRemove, cDefaultAttributes                           :: DsStri
 cEventId, cDefaultEventId, cRetryDuration                              :: DsString
 cDefaultSelector, cDefaultMergeMode                                    :: DsString
 
-cDefaultSettleDurationMs, cDefaultSseRetryDurationMs                  :: Int
-cDefaultFragmentsUseViewTransitions                                   :: Bool
-cDefaultOnlyIfMissing                                                 :: Bool
-cDefaultAutoRemove                                                    :: Bool
-cDefaultUseViewTransition                                             :: Bool
+cDefaultSettleDurationMs, cDefaultSseRetryDurationMs                   :: Int
+cDefaultFragmentsUseViewTransitions                                    :: Bool
+cDefaultOnlyIfMissing                                                  :: Bool
+cDefaultAutoRemove                                                     :: Bool
+cDefaultUseViewTransition                                              :: Bool
 
 cDATASTAR                           = "datastar"
 cDATASTAR_EVENT                     = "datastar-event"

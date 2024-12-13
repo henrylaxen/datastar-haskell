@@ -12,7 +12,7 @@ import Network.Wai.Application.Static
     ( staticApp, defaultWebAppSettings )
 import Network.Wai.Handler.Warp ( run )
 import Relude
-import SSE ( DsString, makeSSE, Command(MergeFragments) )
+import SSE ( DsString, makeSSE, EventType(MergeFragments) )
 import qualified HTMLEntities.Text ( text )
 
 app :: Text -> Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived

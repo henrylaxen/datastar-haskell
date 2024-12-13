@@ -6,7 +6,7 @@ import Relude
 import SSE
     ( makeSSE,
       DsString,
-      Command(..),
+      EventType(..),
       Options(_oAttributes, _oSettleDuration, _oUseViewTransition,
               _oEventId, _oOnlyIfMissing, _oRetryDuration, _oAutoRemove) )
 import System.IO.Silently ( capture )
@@ -14,7 +14,7 @@ import System.IO.Silently ( capture )
 sseWrite :: DsString -> IO ()
 sseWrite = putStr . decodeUtf8
 
-commands :: [(Command, [DsString], Maybe Options)]
+commands :: [(EventType, [DsString], Maybe Options)]
 commands = [
     ( MergeFragments,   [ [i|<div id="someId">with content</div>|]  ],  Nothing )
   , ( RemoveFragments,  ["#target"], Just (def {_oSettleDuration = Just 200, _oUseViewTransition = Just True}) )

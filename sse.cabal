@@ -16,10 +16,12 @@ common warnings
   ghc-options:
     -O2
     -Wall
+    -ddump-minimal-imports
     -funbox-strict-fields
     -fwarn-tabs
+    -fwrite-ide-info
+    -haddock
     -threaded
-    -ddump-minimal-imports
 
 common deps
   build-depends:
