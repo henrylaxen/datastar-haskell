@@ -3,8 +3,8 @@ module Main (main) where
 import Data.Default ( Default(def) )
 import Data.String.Here.Interpolated ( i )
 import Relude
-import SSE
-    ( makeSSE,
+import Datastar
+    ( makeDatastar,
       DsString,
       EventType(..),
       Options(_oAttributes, _oSettleDuration, _oUseViewTransition,
@@ -27,7 +27,7 @@ commands = [
   ]
 
 testStdOutSend :: IO ()
-testStdOutSend = mapM_ (\(a,b,c) -> sseWrite (makeSSE a b c)) commands
+testStdOutSend = mapM_ (\(a,b,c) -> sseWrite (makeDatastar a b c)) commands
 
 main :: IO ()
 main = do

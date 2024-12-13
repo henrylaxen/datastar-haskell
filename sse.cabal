@@ -1,5 +1,5 @@
 cabal-version:      3.0
-name:               sse
+name:               datastar
 version:            0.1.0.0
 synopsis:           Interface for Server Sent Events using the DataStar framework
 description:        See https://data-star.dev/ for full information
@@ -48,15 +48,15 @@ library
     import:           deps,warnings,default-extensions
     exposed-modules:
         Constants
-      , SSE
+      , Datastar
       , Sender.Snap
     hs-source-dirs:   src
     default-language: Haskell2010
 
-Executable sse
+Executable datastar
   import:  deps,warnings,default-extensions
   default-language: Haskell2010
-  build-depends: sse, warp, wai, http-types, wai-app-static, filepath
+  build-depends: datastar, warp, wai, http-types, wai-app-static, filepath
   other-modules: SnapMain, WarpMain
   hs-source-dirs: app
   main-is: Main.hs
@@ -69,5 +69,5 @@ test-suite ServerSentEventGenerator-test
     main-is:          Main.hs
     build-depends:
         base ^>=4.19.1.0
-      , sse
+      , datastar
       , silently

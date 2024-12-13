@@ -4,7 +4,7 @@ import Data.ByteString.Builder ( lazyByteString, Builder )
 import Data.ByteString.Builder.Extra ( flush )
 import Relude
     ( ($), Num((*)), Ord(max), Maybe(Nothing, Just), MonadIO(..), IO )
-import SSE ( DsString, sseHeaders )
+import Datastar ( DsString, sseHeaders )
 import Snap ( escapeHttp, MonadSnap )
 import qualified System.IO.Streams as Streams
     ( OutputStream, write )

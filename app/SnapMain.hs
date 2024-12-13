@@ -6,7 +6,7 @@ import Data.String.Here.Interpolated ( i )
 import Data.Text ( replace )
 import Data.Time ( getCurrentTime )
 import Relude
-import SSE ( makeSSE, EventType(MergeFragments) )
+import Datastar ( makeDatastar, EventType(MergeFragments) )
 import Sender.Snap ( sseOpen, sseWrite, SSEstream )
 import Snap
 import Snap.Util.FileServe ( serveDirectory )
@@ -21,7 +21,7 @@ handlerFeed = do
     loop :: SSEstream -> IO ()
     loop sseStream = do
       now <- (encodeUtf8 :: Text -> DsString)  . show <$> liftIO getCurrentTime
-      let dsStr = makeSSE MergeFragments [timeNow now] Nothing
+      let dsStr = makeDatastar MergeFragments [timeNow now] Nothing
       sseWrite sseStream dsStr
       threadDelay 2000000
       loop sseStream

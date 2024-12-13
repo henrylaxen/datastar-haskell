@@ -12,7 +12,7 @@ import Network.Wai.Application.Static
     ( staticApp, defaultWebAppSettings )
 import Network.Wai.Handler.Warp ( run )
 import Relude
-import SSE ( DsString, makeSSE, EventType(MergeFragments) )
+import Datastar ( DsString, makeDatastar, EventType(MergeFragments) )
 import qualified HTMLEntities.Text ( text )
 
 app :: Text -> Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
@@ -37,7 +37,7 @@ feedLoop send flush = loop
       let
         timeNow :: DsString -> DsString
         timeNow x = [i|<div id="feed">The time is: ${x}</div>|]
-        dsStr = makeSSE MergeFragments [timeNow now] Nothing
+        dsStr = makeDatastar MergeFragments [timeNow now] Nothing
       send (lazyByteString dsStr) >> flush
       threadDelay 2000000  -- 2 seconds
       loop

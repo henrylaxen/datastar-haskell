@@ -1,8 +1,8 @@
-module SSE (
+module Datastar (
     EventType(..)
   , Options(..)
   , DsString  -- ^ A type synonym for LazyByteString
-  , makeSSE
+  , makeDatastar
   , sseHeaders
   ) where
 
@@ -90,7 +90,7 @@ data EventType =
   | ExecuteScript
   deriving Show
 
--- | check returns an Either. It checks the arguments to be passed to makeSSE for
+-- | check returns an Either. It checks the arguments to be passed to makeDatastar for
 --   existance
 
 check :: EventType -> [DsString] -> Maybe Options -> Either DsString (NonEmpty DsString)
@@ -108,12 +108,12 @@ newtype SSEexception = SSEexception DsString
   deriving Show
 instance Exception SSEexception
 
--- | makeSSE is the main function you will use to create datastar events. It with throw an error
+-- | makeDatastar is the main function you will use to create datastar events. It with throw an error
 --   if the arguments are not correct, or a LazyByteString (internally called a DsString) if
 --   the arguments check out.  This string may then be sent to the browser
 
-makeSSE :: EventType -> [DsString] -> Maybe Options -> DsString
-makeSSE cmd l mbOptions = either (bug . SSEexception) go (check cmd l mbOptions)
+makeDatastar :: EventType -> [DsString] -> Maybe Options -> DsString
+makeDatastar cmd l mbOptions = either (bug . SSEexception) go (check cmd l mbOptions)
   where
    go n = case cmd of
     MergeFragments  ->   mergeFragments l mbOptions
