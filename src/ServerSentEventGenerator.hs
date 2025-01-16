@@ -5,25 +5,27 @@ module ServerSentEventGenerator (
   , ToBuilder(..)
   , MergeMode(..)
   , Send(..)
-  , MergeFragment
+  , MergeFragments
   , sseHeaders
   , send
   , sendFragments
   , mergeFragments
+  , removeFragment
   
   ) where
 
 import           Constants
-import           Data.ByteString.Builder
-import           Data.Default              ( Default(..) )
+import Data.ByteString.Builder ( Builder )
+import Data.Default ( Default(..) )
 import ServerSentEventGenerator.Internal
+    ( ToBuilder(..), HttpVersion(..), maybeDefault, format )
+import Control.Exception
 
 -- $setup
 -- >>> import           Data.Functor.Identity
 -- >>> import           Data.Maybe
 -- >>> import           Data.Text                 ( Text )
 -- >>> import qualified Data.Text.Encoding        as T
-
 
 -- import qualified Data.ByteString.Lazy      as B
 -- import           Data.ByteString.Lazy.UTF8
@@ -38,6 +40,11 @@ import ServerSentEventGenerator.Internal
 --
 -- >>> builderToString . runIdentity $ sseHeaders
 -- "Cache-control: no-cache\nContent-type: text/event-stream\nConnection: keep-alive\n"
+
+-- >>> sampleDataLines :: [Builder]
+-- >>> sampleDataLines = ["line 1", "line 2"]
+
+
 
 sseHeaders :: HttpVersion m => m Builder
 sseHeaders = do
@@ -72,7 +79,7 @@ options opt =
     ("id: " <>)  <$> optionEventId opt,
     if optionRetryDuration opt == optionRetryDuration def 
     then Nothing
-    else ((<>) "retry: " . intDec) <$> optionRetryDuration opt
+    else ((<>) "retry: " . toBuilder) <$> optionRetryDuration opt
   ]
 
 -- | A sum of the possible Datastar specific sse events that can be sent
@@ -142,17 +149,17 @@ instance Default Send where
 --
 -- Example
 --
--- >>>  send $ Send EventMergeFragments ["line 1", "line 2"] (Just "alpah123") Nothing
--- "datastar-merge-fragments\nid: alpah123\ndata: line 1\ndata: line 2\n\n"
+-- >>> send $ Send EventMergeFragments sampleDataLines (def {optionEventId = Just "abc123"})
+-- >>> "event: datastar-merge-fragments\nid: abc123\ndata: Important Data\ndata: Even More Important Data\n\n"
 --
--- >>> send (def {sendDataLines = ["line1, line2"]})
--- "datastar-merge-fragments\ndata: line1, line2\n\n"
+-- >>> send (def {sendDataLines = sampleDataLines})
+-- >>> "event: datastar-merge-fragments\ndata: Important Data\ndata: Even More Important Data\n\n"
 
 send :: Send -> Builder
-send s = format builders <> "\n"
+send s = format builders
   where
     builders = 
-      [Just (toBuilder (sendEventType s))]
+      [Just ("event: " <> toBuilder (sendEventType s))]
       <> options (sendOptions s)
       <> ( map (Just . ("data: " <>)) (sendDataLines s))
 
@@ -198,17 +205,17 @@ ServerSentEventGenerator.MergeFragments(
 sendFragments :: ToBuilder a => [a] -> Builder
 sendFragments s = send def {sendDataLines = map toBuilder s}
 
-data MergeFragment = MergeFragment {
+data MergeFragments = MergeFragments {
      mergeData              :: [Builder]
    , mergeSelector          :: Maybe Builder    -- > selector: "abc123"
-   , mergeMode              :: Maybe MergeMode  -- > 
+   , mergeMode              :: Maybe MergeMode  -- > Morph is default
    , mergesettleDuration    :: Maybe Int
    , mergeUseUiewTransition :: Maybe Bool
    , mergeOptions           :: Options
    } deriving Show
 
-instance Default MergeFragment where
-  def                    = MergeFragment {
+instance Default MergeFragments where
+  def                        = MergeFragments {
        mergeData              = []
     ,  mergeSelector          = Nothing
     ,  mergeMode              = Just Morph
@@ -216,11 +223,35 @@ instance Default MergeFragment where
     ,  mergeUseUiewTransition = Just False
     ,  mergeOptions           = def }
 
-mergeFragments :: MergeFragment -> Builder
-mergeFragments m = format builders <> "\n"
+
+
+
+
+
+-- | convert a MergeFragments data type to a Builder, ready to be sent down the wire
+--
+-- Example
+--
+-- >>>  :{
+-- mergeFragments def {  mergeMode = Just UpsertAttributes
+--                  , mergeData = sampleDataLines
+--                  , mergesettleDuration = Just 500
+--                  , mergeUseUiewTransition = Just True}
+-- :}
+-- >>> "event: datastar-merge-fragments\nupsertAttributes\ntrue\ntrue\ndata: Important Data\ndata: Even More Important Data\n\n"
+    
+-- "datastar-merge-fragments\nid: alpah123\ndata: line 1\ndata: line 2\n\n"
+--
+-- >>> send (def {sendDataLines = ["line1, line2"]})
+-- "datastar-merge-fragments\ndata: line1, line2\n\n"
+
+
+
+mergeFragments :: MergeFragments -> Builder
+mergeFragments m = format builders
   where
     builders = 
-      [ Just (toBuilder EventMergeFragments) ]
+      [ Just ("event: " <> toBuilder EventMergeFragments) ]
       <> options (mergeOptions m)
       <> withDefaults
       <> ( map (Just . ("data: " <>)) (mergeData m))
@@ -230,9 +261,41 @@ mergeFragments m = format builders <> "\n"
       ,  maybeDefault  (mergeUseUiewTransition m)
       ,  maybeDefault  (mergeUseUiewTransition m) ]
   
--- data RemoveFragments = RemoveFragments {
---   removeSelector :: Builder
---   , settleDuration
---   , useViewTransition
---   , eventId
---                                        }
+data RemoveFragment = RemoveFragment {
+    removeSelector          :: Builder
+  , removeSettleDuration    :: Maybe Int
+  , removeUseViewTransition :: Maybe Bool
+  , removeOptions           :: Options
+  } deriving Show
+
+instance Default RemoveFragment where
+  def                       = RemoveFragment {
+    removeSelector          = throw (RemoveFragmentSelectorIsMissing "the selector is required in RemoveFragment")
+  , removeSettleDuration    = Just cDefaultSettleDurationMs
+  , removeUseViewTransition = Just False
+  , removeOptions           = def }
+
+
+-- | 
+
+
+
+removeFragment :: RemoveFragment -> Builder
+removeFragment r = format builders
+  where
+    builders =
+         [Just ("event: " <> toBuilder EventRemoveFragments)]
+      <> [Just (removeSelector r)]
+      <> withDefaults
+      <> options (removeOptions r)
+      <> withDefaults
+    withDefaults :: [Maybe Builder]
+    withDefaults = 
+      [  maybeDefault  (removeSettleDuration r)
+      ,  maybeDefault  (removeUseViewTransition r) ]
+
+data ServerSentEventGeneratorExceptions =
+  RemoveFragmentSelectorIsMissing String
+  deriving Show
+  
+instance Exception ServerSentEventGeneratorExceptions

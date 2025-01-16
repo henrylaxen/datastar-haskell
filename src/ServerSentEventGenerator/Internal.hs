@@ -1,16 +1,15 @@
 module ServerSentEventGenerator.Internal where
 
 -- import           Constants
-import           Data.ByteString.Builder
-import           Data.ByteString.Lazy.UTF8
-import           Data.Default              ( Default(..) )
-import           Data.Functor.Identity
-import           Data.Maybe
-import           Data.Text                 ( Text )
-import qualified Data.Text.Encoding        as T
-
--- import qualified Data.ByteString.Lazy      as B
--- import qualified Data.Text                 as T
+import Data.ByteString.Builder
+    ( toLazyByteString, byteString, intDec, lazyByteString, Builder )
+import Data.ByteString.Lazy.UTF8
+    ( ByteString, fromString, toString )
+import Data.Default ( Default(..) )
+import Data.Functor.Identity ( Identity )
+import Data.Maybe ( catMaybes )
+import Data.Text ( Text )
+import qualified Data.Text.Encoding as T ( encodeUtf8 )
 
 class Monad m => HttpVersion m where
   isHttpVersion1_1 :: m Bool
@@ -34,6 +33,9 @@ instance ToBuilder Bool where
   toBuilder False = "false"
   toBuilder True  = "true"
 
+instance ToBuilder Int where
+  toBuilder = intDec
+
 -- | prints a Builder on STDOUT
 putBuilder :: Builder -> IO ()
 putBuilder = putStrLn . builderToString
@@ -48,7 +50,8 @@ builderToString = toString . toLazyByteString
 withLineFeeds :: [Builder] -> Builder
 withLineFeeds = mconcat . map (<> "\n" )
 
--- | A convenience function which turns default values into Nothings
+-- | A convenience function which turns default values into Nothings and values not matching
+--   the default into Just Builders.  
 
 maybeDefault
   :: (Eq a, Default a, ToBuilder a) => Maybe a -> Maybe Builder
@@ -59,4 +62,4 @@ maybeDefault (Just x) = if x == def then Nothing else (Just . toBuilder $ x)
 --   to the rest, removing the Justs
 
 format :: [Maybe Builder] -> Builder
-format = withLineFeeds . catMaybes 
+format x = (withLineFeeds . catMaybes) x <> "\n"
