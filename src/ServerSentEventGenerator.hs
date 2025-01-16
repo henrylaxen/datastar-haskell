@@ -91,7 +91,6 @@ instance ToBuilder MergeMode where
    toBuilder After            = cAfter
    toBuilder UpsertAttributes = cUpsertAttributes
 
-
 {- From the README.MD
 ServerSentEventGenerator.send(
     eventType: EventType,
@@ -141,6 +140,33 @@ send s = format builders <> "\n"
 --
 -- >>> sendFragments (["l1", "l2"] :: [Text])
 -- "datastar-merge-fragments\ndata: l1\ndata: l2\n\n"
+
+
+{- From the README.MD
+
+ServerSentEventGenerator.MergeFragments(
+    fragments: string,
+    options?: {
+        selector?: string,
+        mergeMode?: FragmentMergeMode,
+        settleDuration?: durationInMilliseconds,
+        useViewTransition?: boolean,
+        eventId?: string,
+        retryDuration?: durationInMilliseconds
+     }
+ )
+| Mode             | Description                                             |
+|------------------|---------------------------------------------------------|
+| morph            | Use idiomorph to merge the fragment into the DOM        |
+| inner            | Replace the innerHTML of the selector with the fragment |
+| outer            | Replace the outerHTML of the selector with the fragment |
+| prepend          | Prepend the fragment to the selector                    |
+| append           | Append the fragment to the selector                     |
+| before           | Insert the fragment before the selector                 |
+| after            | Insert the fragment after the selector                  |
+| upsertAttributes | Update the attributes of the selector with the fragment |
+
+-}
 
 sendFragments :: ToBuilder a => [a] -> Builder
 sendFragments s = send def {sendDataLines = map toBuilder s}
