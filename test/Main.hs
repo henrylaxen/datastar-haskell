@@ -1,7 +1,7 @@
 module Main (main) where
 
 import Data.Default ( Default(def) )
-import Data.String.Here.Interpolated ( i )
+import NeatInterpolation hiding (text)
 import Relude
 import Datastar
     ( makeDatastar,
@@ -16,13 +16,13 @@ sseWrite = putStr . decodeUtf8
 
 commands :: [(EventType, [DsString], Maybe Options)]
 commands = [
-    ( MergeFragments,   [ [i|<div id="someId">with content</div>|]  ],  Nothing )
+    ( MergeFragments,   [ encodeUtf8 [trimming|<div id="someId">with content</div>|]  ],  Nothing )
   , ( RemoveFragments,  ["#target"], Just (def {_oSettleDuration = Just 200, _oUseViewTransition = Just True}) )
   , ( MergeSignals,
-    [ [i|{"output":"Patched Output Test","show":true,"input":"Test","user":{"name":"","email":""}}|]  ],
+    [ encodeUtf8 [trimming|{"output":"Patched Output Test","show":true,"input":"Test","user":{"name":"","email":""}}|]  ],
       Just (def {_oEventId = Just "123", _oOnlyIfMissing = Just True}) )
   , ( RemoveSignals,    [ "user.name", "user.email"], Just (def {_oRetryDuration = Just 300}) )
-  , ( ExecuteScript,    [ [i|window.location = "https://data-star.dev"||]  ],
+  , ( ExecuteScript,    [ encodeUtf8[trimming|window.location = "https://data-star.dev"||]  ],
       Just (def {_oAutoRemove = Just False, _oAttributes = Just "type text/javascript"}))
   ]
 
@@ -37,7 +37,7 @@ main = do
     else print s >> print r1
 
 r1 :: String
-r1 = [i|event: datastar-merge-fragments
+r1 = toString [trimming|event: datastar-merge-fragments
 data: fragments <div id="someId">with content</div>
 
 event: datastar-remove-fragments

@@ -8,7 +8,7 @@ module Datastar (
 
 import Constants
 import Data.Default ( Default(..) )
-import Data.String.Here.Interpolated ( i )
+import NeatInterpolation hiding (text)
 import Relude
 
 -- | ServerSendEventData is the data type that datastar works with internally.
@@ -38,7 +38,7 @@ data ServerSendEventData = ServerSendEventData {
 -- a server sent event stream
 
 sseHeaders :: LByteString
-sseHeaders = [i|HTTP/1.1 200 OK
+sseHeaders = encodeUtf8 [trimming|HTTP/1.1 200 OK
 cache-control: no-cache
 connection: keep-alive
 Content-type: text/event-stream; charset=utf-8|] <> "\n\n"
@@ -124,7 +124,7 @@ makeDatastar cmd l mbOptions = either (bug . SSEexception) go (check cmd l mbOpt
 
 -- I need the class to lower case the show instance of Bools, and remove
 -- the show instance of Nothings
-
+\
 class Show a => DsShow a where
   dsShow :: a -> DsString
   dsShow = show
@@ -147,15 +147,15 @@ formatOptions = maybe "" go
   where
     go o =
       mconcat [
-       dsWithDefault o _oEventId           cDefaultEventId               cEventId
-     , dsWithDefault o _oSelector          cDefaultSelector              cSelector
-     , dsWithDefault o _oMergeMode         cDefaultMergeMode             cMerge
-     , dsWithDefault o _oRetryDuration     cDefaultSseRetryDurationMs    cRetryDuration
-     , dsWithDefault o _oSettleDuration    cDefaultSettleDurationMs      cSettleDuration
-     , dsWithDefault o _oUseViewTransition cDefaultUseViewTransition     cUseViewTransition
-     , dsWithDefault o _oOnlyIfMissing     cDefaultOnlyIfMissing         cOnlyIfMissing
-     , dsWithDefault o _oAutoRemove        cDefaultAutoRemove            cAutoRemove
-     , dsWithDefault o _oAttributes        cDefaultAttributes            cAttributes
+       dsWithData    o _oSelector          cDefaultSelector              cSelector
+     , dsWithData    o _oMergeMode         cDefaultMergeMode             cMerge
+     , dsWithData    o _oSettleDuration    cDefaultSettleDurationMs      cSettleDuration
+     , dsWithData    o _oUseViewTransition cDefaultUseViewTransition     cUseViewTransition
+     , dsWithData    o _oOnlyIfMissing     cDefaultOnlyIfMissing         cOnlyIfMissing
+     , dsWithData    o _oAutoRemove        cDefaultAutoRemove            cAutoRemove
+     , dsWithData    o _oAttributes        cDefaultAttributes            cAttributes
+     , dsWithNoData  o _oEventId           cDefaultEventId               cEventId
+     , dsWithNoData  o _oRetryDuration     cDefaultSseRetryDurationMs    cRetryDuration
      ]
 
 -- The rest of these functions are used internally to do the formatting
@@ -166,17 +166,23 @@ withSpace x y = mconcat [ x, " ", y]
 withNewLine :: DsString -> DsString -> DsString
 withNewLine x y = mconcat [ x, " ", y, "\n"]
 
-dsWithDefault :: (Eq a, DsShow a) => Options -> (Options -> Maybe a) -> a -> DsString -> DsString
-dsWithDefault opts field defValue subCommand =
+dsWithData :: (Eq a, DsShow a) => Options -> (Options -> Maybe a) -> a -> DsString -> DsString
+dsWithData opts field defValue subCommand =
+  case field opts of
+    Nothing -> ""
+    Just x -> if x == defValue then "" else mconcat ["data: ", subCommand, " ", dsShow x, "\n"]
+
+dsWithNoData :: (Eq a, DsShow a) => Options -> (Options -> Maybe a) -> a -> DsString -> DsString
+dsWithNoData opts field defValue subCommand =
   case field opts of
     Nothing -> ""
     Just x -> if x == defValue then "" else mconcat [subCommand, ": ", dsShow x, "\n"]
-
+  
 formatSSED :: ServerSendEventData -> DsString
 formatSSED ssed = mconcat [
   withNewLine  "event:" (_sEventType ssed),
-  formatOptions (_sOptions ssed),
   mconcat (map (withNewLine "data:")  (_sDataLines ssed)),
+  formatOptions (_sOptions ssed), 
   "\n" ]
 
 mergeFragments :: [DsString] -> Maybe Options -> DsString

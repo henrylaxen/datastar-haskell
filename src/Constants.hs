@@ -1,6 +1,6 @@
 module Constants where
 
-import Relude ( LByteString, Bool(..), Int )
+import Data.ByteString.Builder
 
 -- taken from consts.ts
 -- why?
@@ -9,7 +9,7 @@ import Relude ( LByteString, Bool(..), Int )
 -- a function call in front of each data constructor, so I
 -- decided to just use the prefix "c"
 
-type DsString = LByteString
+type DsString = Builder
 
 cDATASTAR, cDATASTAR_EVENT, cDATASTAR_REQUEST, cVERSION, cMorph        :: DsString
 cInner, cOuter, cPrepend, cAppend, cBefore, cAfter, cUpsertAttributes  :: DsString
@@ -67,3 +67,5 @@ cAttributes                         = "attributes"
 cEventId                            = "id"
 cRetryDuration                      = "retry"
 cAutoRemove                         = "autoRemove"
+
+ 
