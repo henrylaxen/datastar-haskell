@@ -120,11 +120,11 @@ makeDatastar cmd l mbOptions = either (bug . SSEexception) go (check cmd l mbOpt
     RemoveFragments ->   removeFragments (head n) mbOptions
     MergeSignals    ->   mergeSignals (head n) mbOptions
     RemoveSignals   ->   removeSignals l mbOptions
-    ExecuteScript   ->   executeScript (head n) mbOptions
+    ExecuteScript   ->   executeScript (head n) mbOptionsq
 
 -- I need the class to lower case the show instance of Bools, and remove
 -- the show instance of Nothings
-\
+
 class Show a => DsShow a where
   dsShow :: a -> DsString
   dsShow = show

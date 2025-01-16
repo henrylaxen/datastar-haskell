@@ -1,15 +1,16 @@
 module ServerSentEventGenerator.Internal where
 
-import           Constants
+-- import           Constants
 import           Data.ByteString.Builder
--- import qualified Data.ByteString.Lazy      as B
 import           Data.ByteString.Lazy.UTF8
 import           Data.Default              ( Default(..) )
 import           Data.Functor.Identity
 import           Data.Maybe
--- import qualified Data.Text                 as T
 import           Data.Text                 ( Text )
 import qualified Data.Text.Encoding        as T
+
+-- import qualified Data.ByteString.Lazy      as B
+-- import qualified Data.Text                 as T
 
 class Monad m => HttpVersion m where
   isHttpVersion1_1 :: m Bool
@@ -46,17 +47,6 @@ builderToString = toString . toLazyByteString
 
 withLineFeeds :: [Builder] -> Builder
 withLineFeeds = mconcat . map (<> "\n" )
-
--- | All server sent events can contain and Event Id and a Retry Duration as an option
-
-options :: Maybe Builder -> Maybe Int -> [Maybe Builder]
-options mbEventId mbRetryDuration =
-  [
-    ("id: " <>)  <$> mbEventId,
-    if mbRetryDuration == Just cDefaultSseRetryDurationMs
-    then Nothing
-    else ((<>) "retry: " . intDec) <$> mbRetryDuration
-  ]
 
 -- | A convenience function which turns default values into Nothings
 

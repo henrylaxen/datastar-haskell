@@ -47,6 +47,34 @@ sseHeaders = do
     sseHeaders2 = "Cache-control: no-cache\nContent-type: text/event-stream\n"
     sseHeaders1_1 = sseHeaders2 <> "Connection: keep-alive\n"
 
+--     withDefaults :: [Maybe Builder]
+--     withDefaults = 
+--       [  maybeDefault  (mergeMode m)
+--       ,  maybeDefault  (mergeUseUiewTransition m)
+--       ,  maybeDefault  (mergeUseUiewTransition m) ]
+
+data Options = Options {
+    optionEventId :: Maybe Builder
+  , optionRetryDuration :: Maybe Int
+  } deriving (Show)
+
+instance Default Options where
+  def = Options {
+    optionEventId = Nothing
+  , optionRetryDuration = Just cDefaultSseRetryDurationMs
+    }
+
+-- | All server sent events can contain and Event Id and a Retry Duration as an option
+
+options ::  Options -> [Maybe Builder]
+options opt =
+  [
+    ("id: " <>)  <$> optionEventId opt,
+    if optionRetryDuration opt == optionRetryDuration def 
+    then Nothing
+    else ((<>) "retry: " . intDec) <$> optionRetryDuration opt
+  ]
+
 -- | A sum of the possible Datastar specific sse events that can be sent
 
 data EventType =
@@ -103,12 +131,11 @@ ServerSentEventGenerator.send(
 data Send = Send {
     sendEventType     :: EventType
   , sendDataLines     :: [Builder]
-  , sendEventId       :: Maybe Builder
-  , sendRetryDuration :: Maybe Int
+  , sendOptions       :: Options
   } deriving Show
 
 instance Default Send where
-  def = Send EventMergeFragments [] Nothing Nothing
+  def = Send EventMergeFragments [] def
 
 
 -- | convert a Send data type to a Builder, ready to be sent down the wire
@@ -125,8 +152,8 @@ send :: Send -> Builder
 send s = format builders <> "\n"
   where
     builders = 
-        [Just (toBuilder (sendEventType s))]
-        <> options (sendEventId s) (sendRetryDuration s)
+      [Just (toBuilder (sendEventType s))]
+      <> options (sendOptions s)
       <> ( map (Just . ("data: " <>)) (sendDataLines s))
 
 -- | A convenience function that takes a list of ByteString/String/Text and
@@ -177,8 +204,7 @@ data MergeFragment = MergeFragment {
    , mergeMode              :: Maybe MergeMode  -- > 
    , mergesettleDuration    :: Maybe Int
    , mergeUseUiewTransition :: Maybe Bool
-   , mergeEventId           :: Maybe Builder
-   , mergeRetryDuration     :: Maybe Int
+   , mergeOptions           :: Options
    } deriving Show
 
 instance Default MergeFragment where
@@ -188,15 +214,14 @@ instance Default MergeFragment where
     ,  mergeMode              = Just Morph
     ,  mergesettleDuration    = Just cDefaultSettleDurationMs
     ,  mergeUseUiewTransition = Just False
-    ,  mergeEventId           = Nothing
-    ,  mergeRetryDuration     = Just cDefaultSseRetryDurationMs }
+    ,  mergeOptions           = def }
 
 mergeFragments :: MergeFragment -> Builder
 mergeFragments m = format builders <> "\n"
   where
     builders = 
       [ Just (toBuilder EventMergeFragments) ]
-      <> options (mergeEventId m) (mergeRetryDuration m)
+      <> options (mergeOptions m)
       <> withDefaults
       <> ( map (Just . ("data: " <>)) (mergeData m))
     withDefaults :: [Maybe Builder]
@@ -205,3 +230,9 @@ mergeFragments m = format builders <> "\n"
       ,  maybeDefault  (mergeUseUiewTransition m)
       ,  maybeDefault  (mergeUseUiewTransition m) ]
   
+-- data RemoveFragments = RemoveFragments {
+--   removeSelector :: Builder
+--   , settleDuration
+--   , useViewTransition
+--   , eventId
+--                                        }
