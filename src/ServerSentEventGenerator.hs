@@ -9,8 +9,8 @@ module ServerSentEventGenerator (
   , sseHeaders
   , send
   , sendFragments
---   , mergeFragments
---   , removeFragment
+  , mergeFragments
+  , removeFragment
   
   ) where
 
@@ -245,10 +245,10 @@ mergeFragments m = format builders
       <> mapWithData (mergeData m)
     withDefaults :: [Maybe Builder]
     withDefaults = 
-      [  maybeDefault ("data: " <> cMerge <> " ")  $ mergeMode m
-      , ((<>)         ("data: " <> cSelector <> " ")) <$> mergeSelector m
-      ,  maybeDefault ("data: " <> cSettleDuration <> " ")  $ mergeSettleDuration m
-      ,  maybeDefault ("data: " <> cUseViewTransition <> " ")  $ mergeUseViewTransition m
+      [  maybeDefault cMerge                      (mergeMode m)
+      , ((<>) ("data: " <> cSelector <> " ")) <$> (mergeSelector m)
+      ,  maybeDefault cSettleDuration             (mergeSettleDuration m)
+      ,  maybeDefault cUseViewTransition          (mergeUseViewTransition m)
       ]                            
 
 data RemoveFragment = RemoveFragment {
@@ -267,27 +267,56 @@ instance Default RemoveFragment where
 
 
 -- | convert a RemoveFragment data type to a Builder, ready to be sent down the wire
+-- Note: the removeSelector field is required
 --
 -- Example
 --
 -- >> removeFragment def {removeSelector = "id1", removeSettleDuration = Just 500  }
+-- 
 
--- removeFragment :: RemoveFragment -> Builder
--- removeFragment r = format builders
+removeFragment :: RemoveFragment -> Builder
+removeFragment r = format builders
+  where
+    builders =
+      [Just    ("event: " <> toBuilder EventRemoveFragments)]
+      <> options (removeOptions r)
+      <> [Just . ((<>) ("data: " <> cSelector <> " ")) $ (removeSelector r)]
+      <> withDefaults
+    withDefaults :: [Maybe Builder]
+    withDefaults = 
+      [  maybeDefault cSettleDuration    (removeSettleDuration r)
+      ,  maybeDefault cUseViewTransition (removeUseViewTransition r) ]
+
+data MergeSignals = MergeSignals {
+    signalSelector          :: Builder
+  , signalOnlyIfMissing     :: Maybe Bool
+  , signalOptions           :: Options
+  } deriving Show
+
+instance Default MergeSignals where
+  def                       = MergeSignals {
+    signalSelector          = throw (SignalsSelectorIsMissing "the selector is required in MergeSignals")
+  , signalOnlyIfMissing    = Just cDefaultOnlyIfMissing
+  , signalOptions           = def }
+
+-- mergeSignal :: MergeSignals -> Builder
+-- mergeSignal m = format builders
 --   where
 --     builders =
---          [Just ("event: " <> toBuilder EventRemoveFragments)]
---       <> [Just (removeSelector r)]
---       <> withDefaults
---       <> options (removeOptions r)
+--       [Just   ("event: " <> toBuilder EventMergeSignals)]
+--       <> options (signalOptions m)
 --       <> withDefaults
 --     withDefaults :: [Maybe Builder]
 --     withDefaults = 
---       [  maybeDefault  (removeSettleDuration r)
---       ,  maybeDefault  (removeUseViewTransition r) ]
+--       [maybeDefault cDefaultOnlyIfMissing (signalOnlyIfMissing m) ]
+
+
+
 
 data ServerSentEventGeneratorExceptions =
-  RemoveFragmentSelectorIsMissing String
+    RemoveFragmentSelectorIsMissing String
+  | SignalsSelectorIsMissing String
   deriving Show
   
 instance Exception ServerSentEventGeneratorExceptions
+

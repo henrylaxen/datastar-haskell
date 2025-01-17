@@ -9,16 +9,16 @@ import Data.ByteString.Builder
 -- a function call in front of each data constructor, so I
 -- decided to just use the prefix "c"
 
-type DsString = Builder
+-- type Builder = Builder
 
-cDATASTAR, cDATASTAR_EVENT, cDATASTAR_REQUEST, cVERSION, cMorph        :: DsString
-cInner, cOuter, cPrepend, cAppend, cBefore, cAfter, cUpsertAttributes  :: DsString
-cMergeFragments, cMergeSignals, cRemoveFragments, cRemoveSignals       :: DsString
-cExecuteScript, cSelector, cMerge, cSettleDuration, cFragments         :: DsString
-cUseViewTransition, cSignals, cOnlyIfMissing, cPaths, cScript          :: DsString
-cAttributes, cAutoRemove, cDefaultAttributes                           :: DsString
-cEventId, cDefaultEventId, cRetryDuration                              :: DsString
-cDefaultSelector, cDefaultMergeMode                                    :: DsString
+cDATASTAR, cDATASTAR_EVENT, cDATASTAR_REQUEST, cVERSION, cMorph        :: Builder
+cInner, cOuter, cPrepend, cAppend, cBefore, cAfter, cUpsertAttributes  :: Builder
+cMergeFragments, cMergeSignals, cRemoveFragments, cRemoveSignals       :: Builder
+cExecuteScript, cSelector, cMerge, cSettleDuration, cFragments         :: Builder
+cUseViewTransition, cSignals, cOnlyIfMissing, cPaths, cScript          :: Builder
+cAttributes, cAutoRemove, cDefaultAttributes                           :: Builder
+cEventId, cDefaultEventId, cRetryDuration                              :: Builder
+cDefaultSelector, cDefaultMergeMode                                    :: Builder
 
 cDefaultSettleDurationMs, cDefaultSseRetryDurationMs                   :: Int
 cDefaultFragmentsUseViewTransitions                                    :: Bool

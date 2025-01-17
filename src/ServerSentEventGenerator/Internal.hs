@@ -52,7 +52,10 @@ withLineFeeds = mconcat . map (<> "\n" )
 maybeDefault
   :: (Eq a, Default a, ToBuilder a) => Builder -> Maybe a -> Maybe Builder
 maybeDefault _ Nothing =  Nothing
-maybeDefault prefix (Just x) = if x == def then Nothing else (Just $ prefix <> toBuilder x)
+maybeDefault prefix (Just x) = if x == def
+  then Nothing
+  else (Just "data: " <> prefix <> " " <> toBuilder x) 
+
 
 -- | Takes a list of Maybe Builder, throws away the Nothings, and appends line feeds
 --   to the rest, removing the Justs
