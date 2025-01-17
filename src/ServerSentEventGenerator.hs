@@ -12,6 +12,7 @@ module ServerSentEventGenerator (
   , mergeFragments
   , removeFragment
   , mergeSignals
+  , removeSignal
   ) where
 
 import           Constants
@@ -138,6 +139,8 @@ data Send = Send {
   , sendOptions       :: Options
   } deriving Show
 
+--------------------------------------- Functions Start Here ---------------------------------------
+
 instance Default Send where
   def = Send EventMergeFragments [] def
 
@@ -152,6 +155,7 @@ instance Default Send where
 -- >>> send (def {sendDataLines = sampleDataLines})
 -- "event: datastar-merge-fragments\ndata: line 1\ndata: line 2\n\n"
 
+--------------------------------------- send  ---------------------------------------
 send :: Send -> Builder
 send s = format builders
   where
@@ -198,9 +202,11 @@ ServerSentEventGenerator.MergeFragments(
 
 -}
 
+--------------------------------------- sendFragments  ---------------------------------------
 sendFragments :: ToBuilder a => [a] -> Builder
 sendFragments s = send def {sendDataLines = map toBuilder s}
 
+--------------------------------------- mergeFragments  ---------------------------------------
 data MergeFragments = MergeFragments {
      mergeData              :: [Builder]
    , mergeSelector          :: Maybe Builder    -- > selector: "abc123"
@@ -251,6 +257,7 @@ mergeFragments m = format builders
       ,  maybeDefault cUseViewTransition          (mergeUseViewTransition m)
       ]                            
 
+--------------------------------------- removeFragment  ---------------------------------------
 data RemoveFragment = RemoveFragment {
     removeSelector          :: Builder
   , removeSettleDuration    :: Maybe Int
@@ -290,6 +297,7 @@ removeFragment r = format builders
       [  maybeDefault cSettleDuration    (removeSettleDuration r)
       ,  maybeDefault cUseViewTransition (removeUseViewTransition r) ]
 
+--------------------------------------- mergeSignals  ---------------------------------------
 data MergeSignals = MergeSignals {
     signalSelector          :: Builder
   , signalOnlyIfMissing     :: Maybe Bool
@@ -325,12 +333,43 @@ mergeSignals s = format builders
     withDefaults = 
       [  maybeDefault cOnlyIfMissing    (signalOnlyIfMissing s) ]
 
+--------------------------------------- removeSignal  ---------------------------------------
+data RemoveSignal = RemoveSignal {
+    removeSignalPath      :: Builder
+  , removeSignalOptions   :: Options
+  } deriving Show
 
+instance Default RemoveSignal where
+  def                       = RemoveSignal {
+    removeSignalPath        = throw (RemoveSignalPathIsMissing "the selector is required in RemoveSignal")
+  , removeSignalOptions     = def }
+
+-- | convert a RemoveSignal data type to a Builder, ready to be sent down the wire
+-- Note: the removeSelector field is required
+--
+-- Example
+--
+-- >>> removeSignal def {removeSelector = "id1", removeSettleDuration = Just 500  }
+-- "event: datastar-remove-signals\ndata: selector id1\ndata: settleDuration 500\n\n"
+--
+-- >>> removeSignal def
+-- "*** Exception: RemoveSignalSelectorIsMissing "the selector is required in RemoveSignal"
+
+removeSignal :: RemoveSignal -> Builder
+removeSignal r = format builders
+  where
+    builders =
+      [Just    ("event: " <> toBuilder EventRemoveSignals)]
+      <> options (removeSignalOptions r)
+      <> [Just . ((<>) ("data: " <> cPaths <> " ")) $ (removeSignalPath r)]
+
+---------------------------------------   ---------------------------------------
 
 
 data ServerSentEventGeneratorExceptions =
     RemoveFragmentSelectorIsMissing String
   | SignalsSelectorIsMissing String
+  | RemoveSignalPathIsMissing String
   deriving Show
 instance Exception ServerSentEventGeneratorExceptions
 
