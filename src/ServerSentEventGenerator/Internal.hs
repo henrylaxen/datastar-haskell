@@ -54,7 +54,7 @@ maybeDefault
 maybeDefault _ Nothing =  Nothing
 maybeDefault prefix (Just x) = if x == def
   then Nothing
-  else (Just "data: " <> prefix <> " " <> toBuilder x) 
+  else Just ("data: " <> prefix <> " " <> toBuilder x) 
 
 
 -- | Takes a list of Maybe Builder, throws away the Nothings, and appends line feeds

@@ -11,7 +11,7 @@ module ServerSentEventGenerator (
   , sendFragments
   , mergeFragments
   , removeFragment
-  
+  , mergeSignals
   ) where
 
 import           Constants
@@ -271,8 +271,11 @@ instance Default RemoveFragment where
 --
 -- Example
 --
--- >> removeFragment def {removeSelector = "id1", removeSettleDuration = Just 500  }
--- 
+-- >>> removeFragment def {removeSelector = "id1", removeSettleDuration = Just 500  }
+-- "event: datastar-remove-fragments\ndata: selector id1\ndata: settleDuration 500\n\n"
+--
+-- >>> removeFragment def
+-- "*** Exception: RemoveFragmentSelectorIsMissing "the selector is required in RemoveFragment"
 
 removeFragment :: RemoveFragment -> Builder
 removeFragment r = format builders
@@ -295,20 +298,32 @@ data MergeSignals = MergeSignals {
 
 instance Default MergeSignals where
   def                       = MergeSignals {
-    signalSelector          = throw (SignalsSelectorIsMissing "the selector is required in MergeSignals")
-  , signalOnlyIfMissing    = Just cDefaultOnlyIfMissing
+    signalSelector          = throw (SignalsSelectorIsMissing "the selector is required in SignalFragment")
+  , signalOnlyIfMissing     = Just cDefaultOnlyIfMissing
   , signalOptions           = def }
 
--- mergeSignal :: MergeSignals -> Builder
--- mergeSignal m = format builders
---   where
---     builders =
---       [Just   ("event: " <> toBuilder EventMergeSignals)]
---       <> options (signalOptions m)
---       <> withDefaults
---     withDefaults :: [Maybe Builder]
---     withDefaults = 
---       [maybeDefault cDefaultOnlyIfMissing (signalOnlyIfMissing m) ]
+-- | convert a MergeSignals data type to a Builder, ready to be sent down the wire
+-- Note: the signalSelector field is required
+--
+-- Example
+--
+-- >>> mergeSignals def {signalSelector = "{'key': 'value'}",  signalOnlyIfMissing = Just True}
+-- "event: datastar-merge-signals\ndata: signals {'key': 'value'}\ndata: onlyIfMissing true\n\n"
+--
+-- >>> mergeSignals def
+-- "*** Exception: SignalsSelectorIsMissing "the selector is required in SignalFragment"
+
+mergeSignals :: MergeSignals -> Builder
+mergeSignals s = format builders
+  where
+    builders =
+      [Just    ("event: " <> toBuilder EventMergeSignals)]
+      <> options (signalOptions s)
+      <> [Just . ((<>) ("data: " <> cSignals <> " ")) $ (signalSelector s)]
+      <> withDefaults
+    withDefaults :: [Maybe Builder]
+    withDefaults = 
+      [  maybeDefault cOnlyIfMissing    (signalOnlyIfMissing s) ]
 
 
 
@@ -317,6 +332,5 @@ data ServerSentEventGeneratorExceptions =
     RemoveFragmentSelectorIsMissing String
   | SignalsSelectorIsMissing String
   deriving Show
-  
 instance Exception ServerSentEventGeneratorExceptions
 
