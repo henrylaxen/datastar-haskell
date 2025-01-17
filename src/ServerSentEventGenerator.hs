@@ -12,7 +12,7 @@ module ServerSentEventGenerator (
   , mergeFragments
   , removeFragment
   , mergeSignals
-  , removeSignal
+  , removeSignals
   ) where
 
 import           Constants
@@ -162,7 +162,7 @@ send s = format builders
     builders = 
       [Just ("event: " <> toBuilder (sendEventType s))]
       <> options (sendOptions s)
-      <> mapWithData (sendDataLines s)
+      <> mapWithData mempty (sendDataLines s)
 
 -- | A convenience function that takes a list of ByteString/String/Text and
 --   outputs a Builder, assuming the rest of the Send Data Type fields are
@@ -248,7 +248,7 @@ mergeFragments m = format builders
       [ Just ("event: " <> toBuilder EventMergeFragments) ]
       <> options (mergeOptions m)
       <> withDefaults
-      <> mapWithData (mergeData m)
+      <> mapWithData mempty (mergeData m)
     withDefaults :: [Maybe Builder]
     withDefaults = 
       [  maybeDefault cMerge                      (mergeMode m)
@@ -306,7 +306,7 @@ data MergeSignals = MergeSignals {
 
 instance Default MergeSignals where
   def                       = MergeSignals {
-    signalSelector          = throw (SignalsSelectorIsMissing "the selector is required in SignalFragment")
+    signalSelector          = throw (SignalsSelectorIsMissing "the selector is required in MergeSignals")
   , signalOnlyIfMissing     = Just cDefaultOnlyIfMissing
   , signalOptions           = def }
 
@@ -319,7 +319,7 @@ instance Default MergeSignals where
 -- "event: datastar-merge-signals\ndata: signals {'key': 'value'}\ndata: onlyIfMissing true\n\n"
 --
 -- >>> mergeSignals def
--- "*** Exception: SignalsSelectorIsMissing "the selector is required in SignalFragment"
+-- "*** Exception: SignalsSelectorIsMissing "the selector is required in MergeSignals"
 
 mergeSignals :: MergeSignals -> Builder
 mergeSignals s = format builders
@@ -333,35 +333,42 @@ mergeSignals s = format builders
     withDefaults = 
       [  maybeDefault cOnlyIfMissing    (signalOnlyIfMissing s) ]
 
---------------------------------------- removeSignal  ---------------------------------------
-data RemoveSignal = RemoveSignal {
-    removeSignalPath      :: Builder
-  , removeSignalOptions   :: Options
+--------------------------------------- removeSignals  ---------------------------------------
+data RemoveSignals = RemoveSignals {
+    removeSignalsPath      :: [Builder]
+  , removeSignalsOptions   :: Options
   } deriving Show
 
-instance Default RemoveSignal where
-  def                       = RemoveSignal {
-    removeSignalPath        = throw (RemoveSignalPathIsMissing "the selector is required in RemoveSignal")
-  , removeSignalOptions     = def }
+instance Default RemoveSignals where
+  def                       = RemoveSignals {
+    removeSignalsPath        = throw (RemoveSignalsPathIsMissing "the path is required in RemoveSignals")
+  , removeSignalsOptions     = def }
 
--- | convert a RemoveSignal data type to a Builder, ready to be sent down the wire
--- Note: the removeSelector field is required
+-- | convert a RemoveSignals data type to a Builder, ready to be sent down the wire
+-- Note: the removeSignalsPath field is required
 --
 -- Example
 --
--- >>> removeSignal def {removeSelector = "id1", removeSettleDuration = Just 500  }
--- "event: datastar-remove-signals\ndata: selector id1\ndata: settleDuration 500\n\n"
+-- >>> removeSignals def {removeSignalsPath = ["user.name", "user.email"]}
+-- "event: datastar-remove-signals\ndata: paths user.name\ndata: paths user.email\n\n"
 --
--- >>> removeSignal def
--- "*** Exception: RemoveSignalSelectorIsMissing "the selector is required in RemoveSignal"
+-- >>> removeSignals def
+-- "*** Exception: RemoveSignalsPathIsMissing "the path is required in RemoveSignals"
+-- >>> removeSignals (RemoveSignals ["some.signal"] (Options Nothing (Just 10)))
+-- "event: datastar-remove-signals\nretry: 10\ndata: paths some.signal\n\n"
+-- >>> removeSignals (RemoveSignals [] (Options Nothing (Just 10)))
+-- "*** Exception: RemoveSignalsPathIsEmpty "the path cannot be an empty list"
+--
 
-removeSignal :: RemoveSignal -> Builder
-removeSignal r = format builders
+removeSignals :: RemoveSignals -> Builder
+removeSignals r = format builders
   where
     builders =
-      [Just    ("event: " <> toBuilder EventRemoveSignals)]
-      <> options (removeSignalOptions r)
-      <> [Just . ((<>) ("data: " <> cPaths <> " ")) $ (removeSignalPath r)]
+       [Just    ("event: " <> toBuilder EventRemoveSignals)]
+       <> options (removeSignalsOptions r)
+       <> if null (removeSignalsPath r)
+             then throw (RemoveSignalsPathIsEmpty "the path cannot be an empty list")
+             else mapWithData cPaths (removeSignalsPath r)
 
 ---------------------------------------   ---------------------------------------
 
@@ -369,7 +376,8 @@ removeSignal r = format builders
 data ServerSentEventGeneratorExceptions =
     RemoveFragmentSelectorIsMissing String
   | SignalsSelectorIsMissing String
-  | RemoveSignalPathIsMissing String
+  | RemoveSignalsPathIsMissing String
+  | RemoveSignalsPathIsEmpty String
   deriving Show
 instance Exception ServerSentEventGeneratorExceptions
 

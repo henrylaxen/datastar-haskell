@@ -41,6 +41,9 @@ instance ToBuilder Int where
 builderToString :: Builder -> String
 builderToString = toString . toLazyByteString
 
+isBuilderEmpty :: Builder -> Bool
+isBuilderEmpty x = show x == show (mempty :: Builder)
+
 -- | append linefeeds to list of Builders and add another one to the end
 
 withLineFeeds :: [Builder] -> Builder
@@ -49,13 +52,15 @@ withLineFeeds = mconcat . map (<> "\n" )
 -- | A convenience function which turns default values into Nothings and values not matching
 --   the default into Just Builders.  
 
+adjustSpaces :: Builder -> Builder
+adjustSpaces x = if isBuilderEmpty x then mempty  else x <> " " 
+
 maybeDefault
   :: (Eq a, Default a, ToBuilder a) => Builder -> Maybe a -> Maybe Builder
 maybeDefault _ Nothing =  Nothing
 maybeDefault prefix (Just x) = if x == def
   then Nothing
-  else Just ("data: " <> prefix <> " " <> toBuilder x) 
-
+  else Just ("data: " <> adjustSpaces prefix <> toBuilder x)
 
 -- | Takes a list of Maybe Builder, throws away the Nothings, and appends line feeds
 --   to the rest, removing the Justs
@@ -63,6 +68,6 @@ maybeDefault prefix (Just x) = if x == def
 format :: [Maybe Builder] -> Builder
 format x = (withLineFeeds . catMaybes) x <> "\n"
 
-mapWithData :: [Builder] -> [Maybe Builder]
-mapWithData = map (Just . ("data: " <>)) 
+mapWithData :: Builder -> [Builder] -> [Maybe Builder]
+mapWithData prefix = map (Just . (("data: " <> adjustSpaces prefix) <>)) 
 
