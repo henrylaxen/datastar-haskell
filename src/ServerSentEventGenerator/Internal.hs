@@ -8,6 +8,7 @@ import Data.ByteString.Lazy.UTF8
 import Data.Default ( Default(..) )
 import Data.Functor.Identity ( Identity )
 import Data.Maybe ( catMaybes )
+-- import Data.String
 import Data.Text ( Text )
 import qualified Data.Text.Encoding as T ( encodeUtf8 )
 
@@ -36,12 +37,7 @@ instance ToBuilder Bool where
 instance ToBuilder Int where
   toBuilder = intDec
 
--- | prints a Builder on STDOUT
-putBuilder :: Builder -> IO ()
-putBuilder = putStrLn . builderToString
-
 -- | convert a Builder to a String, mainly for debugging
-
 builderToString :: Builder -> String
 builderToString = toString . toLazyByteString
 
@@ -54,12 +50,16 @@ withLineFeeds = mconcat . map (<> "\n" )
 --   the default into Just Builders.  
 
 maybeDefault
-  :: (Eq a, Default a, ToBuilder a) => Maybe a -> Maybe Builder
-maybeDefault Nothing =  Nothing
-maybeDefault (Just x) = if x == def then Nothing else (Just . toBuilder $ x)
+  :: (Eq a, Default a, ToBuilder a) => Builder -> Maybe a -> Maybe Builder
+maybeDefault _ Nothing =  Nothing
+maybeDefault prefix (Just x) = if x == def then Nothing else (Just $ prefix <> toBuilder x)
 
 -- | Takes a list of Maybe Builder, throws away the Nothings, and appends line feeds
 --   to the rest, removing the Justs
 
 format :: [Maybe Builder] -> Builder
 format x = (withLineFeeds . catMaybes) x <> "\n"
+
+mapWithData :: [Builder] -> [Maybe Builder]
+mapWithData = map (Just . ("data: " <>)) 
+

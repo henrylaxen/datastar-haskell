@@ -9,8 +9,8 @@ module ServerSentEventGenerator (
   , sseHeaders
   , send
   , sendFragments
-  , mergeFragments
-  , removeFragment
+--   , mergeFragments
+--   , removeFragment
   
   ) where
 
@@ -18,7 +18,7 @@ import           Constants
 import Data.ByteString.Builder ( Builder )
 import Data.Default ( Default(..) )
 import ServerSentEventGenerator.Internal
-    ( ToBuilder(..), HttpVersion(..), maybeDefault, format )
+--     ( ToBuilder(..), HttpVersion(..), maybeDefault, mapWithData, format )
 import Control.Exception
 
 -- $setup
@@ -26,6 +26,7 @@ import Control.Exception
 -- >>> import           Data.Maybe
 -- >>> import           Data.Text                 ( Text )
 -- >>> import qualified Data.Text.Encoding        as T
+-- >>> sampleDataLines = ["line 1", "line 2"] :: [Builder]
 
 -- import qualified Data.ByteString.Lazy      as B
 -- import           Data.ByteString.Lazy.UTF8
@@ -40,10 +41,6 @@ import Control.Exception
 --
 -- >>> builderToString . runIdentity $ sseHeaders
 -- "Cache-control: no-cache\nContent-type: text/event-stream\nConnection: keep-alive\n"
-
--- >>> sampleDataLines :: [Builder]
--- >>> sampleDataLines = ["line 1", "line 2"]
-
 
 
 sseHeaders :: HttpVersion m => m Builder
@@ -150,10 +147,10 @@ instance Default Send where
 -- Example
 --
 -- >>> send $ Send EventMergeFragments sampleDataLines (def {optionEventId = Just "abc123"})
--- >>> "event: datastar-merge-fragments\nid: abc123\ndata: Important Data\ndata: Even More Important Data\n\n"
+-- "event: datastar-merge-fragments\nid: abc123\ndata: line 1\ndata: line 2\n\n"
 --
 -- >>> send (def {sendDataLines = sampleDataLines})
--- >>> "event: datastar-merge-fragments\ndata: Important Data\ndata: Even More Important Data\n\n"
+-- "event: datastar-merge-fragments\ndata: line 1\ndata: line 2\n\n"
 
 send :: Send -> Builder
 send s = format builders
@@ -161,7 +158,7 @@ send s = format builders
     builders = 
       [Just ("event: " <> toBuilder (sendEventType s))]
       <> options (sendOptions s)
-      <> ( map (Just . ("data: " <>)) (sendDataLines s))
+      <> mapWithData (sendDataLines s)
 
 -- | A convenience function that takes a list of ByteString/String/Text and
 --   outputs a Builder, assuming the rest of the Send Data Type fields are
@@ -170,11 +167,10 @@ send s = format builders
 -- Example
 --
 -- >>> sendFragments (["l1", "l2"] :: [String])
--- "datastar-merge-fragments\ndata: l1\ndata: l2\n\n"
+-- "event: datastar-merge-fragments\ndata: l1\ndata: l2\n\n"
 --
 -- >>> sendFragments (["l1", "l2"] :: [Text])
--- "datastar-merge-fragments\ndata: l1\ndata: l2\n\n"
-
+-- "event: datastar-merge-fragments\ndata: l1\ndata: l2\n\n"
 
 {- From the README.MD
 
@@ -209,8 +205,8 @@ data MergeFragments = MergeFragments {
      mergeData              :: [Builder]
    , mergeSelector          :: Maybe Builder    -- > selector: "abc123"
    , mergeMode              :: Maybe MergeMode  -- > Morph is default
-   , mergesettleDuration    :: Maybe Int
-   , mergeUseUiewTransition :: Maybe Bool
+   , mergeSettleDuration    :: Maybe Int
+   , mergeUseViewTransition :: Maybe Bool
    , mergeOptions           :: Options
    } deriving Show
 
@@ -219,33 +215,25 @@ instance Default MergeFragments where
        mergeData              = []
     ,  mergeSelector          = Nothing
     ,  mergeMode              = Just Morph
-    ,  mergesettleDuration    = Just cDefaultSettleDurationMs
-    ,  mergeUseUiewTransition = Just False
+    ,  mergeSettleDuration    = Just cDefaultSettleDurationMs
+    ,  mergeUseViewTransition = Just False
     ,  mergeOptions           = def }
-
-
-
-
-
 
 -- | convert a MergeFragments data type to a Builder, ready to be sent down the wire
 --
 -- Example
 --
--- >>>  :{
+-- >>> :{
 -- mergeFragments def {  mergeMode = Just UpsertAttributes
---                  , mergeData = sampleDataLines
---                  , mergesettleDuration = Just 500
---                  , mergeUseUiewTransition = Just True}
+--                       , mergeData = sampleDataLines
+--                       , mergeSettleDuration = Just 500
+--                       , mergeUseViewTransition = Just True
+--                       , mergeSelector = Just "#id"}
 -- :}
--- >>> "event: datastar-merge-fragments\nupsertAttributes\ntrue\ntrue\ndata: Important Data\ndata: Even More Important Data\n\n"
-    
--- "datastar-merge-fragments\nid: alpah123\ndata: line 1\ndata: line 2\n\n"
+-- "event: datastar-merge-fragments\ndata: merge upsertAttributes\ndata: selector #id\ndata: settleDuration 500\ndata: useViewTransition true\ndata: line 1\ndata: line 2\n\n"
 --
--- >>> send (def {sendDataLines = ["line1, line2"]})
--- "datastar-merge-fragments\ndata: line1, line2\n\n"
-
-
+-- >>> send (def {sendDataLines = sampleDataLines})
+-- "event: datastar-merge-fragments\ndata: line 1\ndata: line 2\n\n"
 
 mergeFragments :: MergeFragments -> Builder
 mergeFragments m = format builders
@@ -254,13 +242,15 @@ mergeFragments m = format builders
       [ Just ("event: " <> toBuilder EventMergeFragments) ]
       <> options (mergeOptions m)
       <> withDefaults
-      <> ( map (Just . ("data: " <>)) (mergeData m))
+      <> mapWithData (mergeData m)
     withDefaults :: [Maybe Builder]
     withDefaults = 
-      [  maybeDefault  (mergeMode m)
-      ,  maybeDefault  (mergeUseUiewTransition m)
-      ,  maybeDefault  (mergeUseUiewTransition m) ]
-  
+      [  maybeDefault ("data: " <> cMerge <> " ")  $ mergeMode m
+      , ((<>)         ("data: " <> cSelector <> " ")) <$> mergeSelector m
+      ,  maybeDefault ("data: " <> cSettleDuration <> " ")  $ mergeSettleDuration m
+      ,  maybeDefault ("data: " <> cUseViewTransition <> " ")  $ mergeUseViewTransition m
+      ]                            
+
 data RemoveFragment = RemoveFragment {
     removeSelector          :: Builder
   , removeSettleDuration    :: Maybe Int
@@ -276,23 +266,25 @@ instance Default RemoveFragment where
   , removeOptions           = def }
 
 
--- | 
+-- | convert a RemoveFragment data type to a Builder, ready to be sent down the wire
+--
+-- Example
+--
+-- >> removeFragment def {removeSelector = "id1", removeSettleDuration = Just 500  }
 
-
-
-removeFragment :: RemoveFragment -> Builder
-removeFragment r = format builders
-  where
-    builders =
-         [Just ("event: " <> toBuilder EventRemoveFragments)]
-      <> [Just (removeSelector r)]
-      <> withDefaults
-      <> options (removeOptions r)
-      <> withDefaults
-    withDefaults :: [Maybe Builder]
-    withDefaults = 
-      [  maybeDefault  (removeSettleDuration r)
-      ,  maybeDefault  (removeUseViewTransition r) ]
+-- removeFragment :: RemoveFragment -> Builder
+-- removeFragment r = format builders
+--   where
+--     builders =
+--          [Just ("event: " <> toBuilder EventRemoveFragments)]
+--       <> [Just (removeSelector r)]
+--       <> withDefaults
+--       <> options (removeOptions r)
+--       <> withDefaults
+--     withDefaults :: [Maybe Builder]
+--     withDefaults = 
+--       [  maybeDefault  (removeSettleDuration r)
+--       ,  maybeDefault  (removeUseViewTransition r) ]
 
 data ServerSentEventGeneratorExceptions =
   RemoveFragmentSelectorIsMissing String
