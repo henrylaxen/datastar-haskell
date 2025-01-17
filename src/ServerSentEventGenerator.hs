@@ -22,6 +22,17 @@ import ServerSentEventGenerator.Internal
 --     ( ToBuilder(..), HttpVersion(..), maybeDefault, mapWithData, format )
 import Control.Exception
 
+
+data ServerSentEventGeneratorExceptions =
+    RemoveFragmentSelectorIsMissing String
+  | SignalsSelectorIsMissing String
+  | RemoveSignalsPathIsMissing String
+  | RemoveSignalsPathIsEmpty String
+  | ExecuteScriptIsMissing String
+  deriving Show
+instance Exception ServerSentEventGeneratorExceptions
+
+
 -- $setup
 -- >>> import           Data.Functor.Identity
 -- >>> import           Data.Maybe
@@ -370,14 +381,52 @@ removeSignals r = format builders
              then throw (RemoveSignalsPathIsEmpty "the path cannot be an empty list")
              else mapWithData cPaths (removeSignalsPath r)
 
----------------------------------------   ---------------------------------------
+--------------------------------------- Execute Script  ---------------------------------------
+data ExecuteScript = ExecuteScript {
+    executeScript        :: Builder
+  , executeAttributes    :: Maybe [Builder]
+  , executeAutoRemove    :: Maybe Bool
+  , executescriptOptions :: Options
+  } deriving Show
+
+instance Default ExecuteScript where
+  def                    = ExecuteScript {
+    executeScript        = throw (ExecuteScriptIsMissing "the script is required in ExecuteScript")
+  , executeAttributes    = Just [cDefaultAttributes]
+  , executeAutoRemove    = Just cDefaultAutoRemove
+  , executescriptOptions = def }
+
+-- | convert a ExecuteScript data type to a Builder, ready to be sent down the wire
+-- Note: the executescriptPath field is required
+--
+-- Example
+--
+-- >>> executescript def {executescriptPath = ["user.name", "user.email"]}
+-- "event: datastar-remove-signals\ndata: paths user.name\ndata: paths user.email\n\n"
+--
+-- >>> executescript def
+-- "*** Exception: ExecuteScriptPathIsMissing "the path is required in ExecuteScript"
+-- >>> executescript (ExecuteScript ["some.signal"] (Options Nothing (Just 10)))
+-- "event: datastar-remove-signals\nretry: 10\ndata: paths some.signal\n\n"
+-- >>> executescript (ExecuteScript [] (Options Nothing (Just 10)))
+-- "*** Exception: ExecuteScriptPathIsEmpty "the path cannot be an empty list"
+--
+
+executescript :: ExecuteScript -> Builder
+executescript e = format builders
+  where
+    builders =
+      [Just    ("event: " <> toBuilder EventExecuteScript)]
+      <> options (executescriptOptions e)
+      <> if null (executeAttributes e) || (executeAttributes e) == Just [cDefaultAttributes]
+            then mempty
+            else case executeAttributes of
+                   Nothing -> Nothing
+                   Just xs ->  mapWithData cAttributes (executeAttributes e)
+      <> withDefaults
+    withDefaults :: [Maybe Builder]
+    withDefaults = 
+      [  maybeDefault cAutoRemove    (executeAutoRemove e) ]
 
 
-data ServerSentEventGeneratorExceptions =
-    RemoveFragmentSelectorIsMissing String
-  | SignalsSelectorIsMissing String
-  | RemoveSignalsPathIsMissing String
-  | RemoveSignalsPathIsEmpty String
-  deriving Show
-instance Exception ServerSentEventGeneratorExceptions
 

@@ -37,6 +37,9 @@ instance ToBuilder Bool where
 instance ToBuilder Int where
   toBuilder = intDec
 
+instance Eq Builder where
+  a == b = show a == show b
+
 -- | convert a Builder to a String, mainly for debugging
 builderToString :: Builder -> String
 builderToString = toString . toLazyByteString
