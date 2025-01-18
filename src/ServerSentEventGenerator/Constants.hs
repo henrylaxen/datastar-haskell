@@ -1,4 +1,4 @@
-module Constants where
+module ServerSentEventGenerator.Constants where
 
 import Data.ByteString.Builder
 

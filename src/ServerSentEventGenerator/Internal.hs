@@ -1,59 +1,10 @@
 module ServerSentEventGenerator.Internal where
 
--- import           Constants
+import ServerSentEventGenerator.Class
 import Data.ByteString.Builder
-    ( toLazyByteString, byteString, intDec, lazyByteString, Builder )
-import Data.ByteString.Lazy.UTF8
-    ( ByteString, fromString, toString )
 import Data.Default ( Default(..) )
-import Data.Functor.Identity ( Identity(..) )
 import Data.Maybe ( catMaybes )
--- import Data.String
-import Data.Text ( Text )
-import qualified Data.Text.Encoding as T ( encodeUtf8 )
 import Control.Exception
-import Debug.Trace
-
-class Monad m => HttpVersion m where
-  isHttpVersion1_1 :: m Bool
-
-instance HttpVersion Identity  where
-  isHttpVersion1_1 = return True
-
-class Monad m => Sender m where
-  send :: Builder -> m ()
-
-instance Sender IO where
-  send = putStrLn . builderToString
-
-instance Sender Identity where
-  send x = Identity (trace (builderToString x) ())
-
-watch :: Builder -> ()
-watch x = runIdentity (send x) 
-
-class ToBuilder a where
-  toBuilder :: a -> Builder
-
-instance ToBuilder ByteString where
-  toBuilder = lazyByteString
-
-instance ToBuilder Text where
-  toBuilder = byteString . T.encodeUtf8
-
-instance ToBuilder String where
-  toBuilder = lazyByteString . fromString
-
-instance ToBuilder Bool where
-  toBuilder False = "false"
-  toBuilder True  = "true"
-
-instance ToBuilder Int where
-  toBuilder = intDec
-
--- | convert a Builder to a String, mainly for debugging
-builderToString :: Builder -> String
-builderToString = toString . toLazyByteString
 
 -- I created this silly function to prevent the Orphan instance
 -- warning for defining an Eq instance for Builders using show
@@ -88,6 +39,12 @@ mapWithData prefix = map (Just . (("data: " <> adjustSpaces prefix) <>))
 
 withEvent :: ToBuilder a => a -> Builder
 withEvent = (<>) "event: " . toBuilder
+
+withDefault ::(Default a, Eq a, ToBuilder a) => Builder -> a -> Maybe Builder
+withDefault prefix x = if x == def
+  then Nothing
+  else Just ("data: " <> adjustSpaces prefix <> toBuilder x)
+
 
 data ServerSentEventGeneratorExceptions =
    RemoveFragmentSelectorIsMissing String

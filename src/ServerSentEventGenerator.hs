@@ -23,11 +23,14 @@ module ServerSentEventGenerator (
   , executeScript
   ) where
 
-import           Constants
-import Data.ByteString.Builder ( Builder )
+import ServerSentEventGenerator.Constants
+import Data.ByteString.Builder --  ( Builder )
 import Data.Default ( Default(..) )
 import ServerSentEventGenerator.Internal
-
+import ServerSentEventGenerator.Class
+import           Data.Maybe
+import Control.Monad
+import Newtypes
 
 -- $setup
 -- >>> import           Data.Functor.Identity
@@ -43,9 +46,11 @@ import ServerSentEventGenerator.Internal
 --
 -- Example:
 --
--- >>> builderToString . runIdentity $ sseHeaders
+-- >>> runIdentity $ sseHeaders
 -- "Cache-control: no-cache\nContent-type: text/event-stream\nConnection: keep-alive\n"
 
+
+    
 sseHeaders :: HttpVersion m => m Builder
 sseHeaders = do
   b <- isHttpVersion1_1
@@ -54,21 +59,15 @@ sseHeaders = do
     sseHeaders2 = "Cache-control: no-cache\nContent-type: text/event-stream\n"
     sseHeaders1_1 = sseHeaders2 <> "Connection: keep-alive\n"
 
---     withDefaults :: [Maybe Builder]
---     withDefaults =
---       [  maybeDefault  (mergeMode m)
---       ,  maybeDefault  (mergeUseUiewTransition m)
---       ,  maybeDefault  (mergeUseUiewTransition m) ]
-
 data Options = Options {
-    optionEventId       :: Maybe Builder
-  , optionRetryDuration :: Maybe Int
+    eventId       :: SB
+  , retryDuration :: Int
   } deriving (Show)
 
 instance Default Options where
   def = Options {
-    optionEventId = Nothing
-  , optionRetryDuration = Just cDefaultSseRetryDurationMs
+    eventId = mempty
+  , retryDuration = cDefaultSseRetryDurationMs
   }
 
 -- | All server sent events can contain and Event Id and a Retry Duration as an option
@@ -76,29 +75,32 @@ instance Default Options where
 options ::  Options -> [Maybe Builder]
 options opt =
   [
-    ("id: " <>)  <$> optionEventId opt,
-    if optionRetryDuration opt == optionRetryDuration def
-    then Nothing
-    else ((<>) "retry: " . toBuilder) <$> optionRetryDuration opt
+    withDefault "id: " (eventId opt)
+  , withDefault "retry: " (retryDuration def)
+--    ("id: " <>)  <$> eventId opt,
+--     if retryDuration opt == retryDuration def
+--     then Nothing
+--     else ((<>) "retry: " . toBuilder) <$> retryDuration opt
   ]
 
 data FragmentOptions = FragmentOptions {
-    fragmentSettleDuration    :: Maybe Int
-  , fragmentUseViewTransition :: Maybe Bool
+    settleDuration    :: SettleDuration
+  , useViewTransition :: UseViewTransition
   } deriving (Show)
 
 -- | the MergeFragments and RemoveFragment data types share these options
 
 instance Default FragmentOptions where
   def = FragmentOptions {
-    fragmentSettleDuration     = Just cDefaultSettleDurationMs
-  , fragmentUseViewTransition  = Just cDefaultFragmentsUseViewTransitions
+    settleDuration     = def
+  , useViewTransition  = def
   }
+
 
 fragmentOptions :: FragmentOptions -> [Maybe Builder]
 fragmentOptions frag =
-  [ maybeDefault cSettleDuration      (fragmentSettleDuration frag)
-  , maybeDefault cUseViewTransition   (fragmentUseViewTransition frag)
+  [ withDefault cSettleDuration       (settleDuration frag)
+  , withDefault cUseViewTransition    (useViewTransition frag)
   ]
 
 -- | A sum of the possible Datastar specific sse events that can be sent
@@ -160,6 +162,10 @@ data Send = Send {
   , sendOptions       :: Options
   } deriving Show
 
+
+-- format :: [Maybe Builder] -> Builder
+-- format x = (withLineFeeds . catMaybes) x <> "\n"
+
 --------------------------------------- Functions Start Here ---------------------------------------
 
 instance Default Send where
@@ -169,10 +175,10 @@ instance Default Send where
 --
 -- Example
 --
--- >>> send $ Send EventMergeFragments sampleDataLines (def {optionEventId = Just "abc123"})
+-- >>> sendPure $ Send EventMergeFragments sampleDataLines (def {eventId = Just "abc123"})
 -- "event: datastar-merge-fragments\nid: abc123\ndata: line 1\ndata: line 2\n\n"
 --
--- >>> send (def {sendDataLines = sampleDataLines})
+-- >>> sendPure (def {sendDataLines = sampleDataLines})
 -- "event: datastar-merge-fragments\ndata: line 1\ndata: line 2\n\n"
 
 --------------------------------------- send  ---------------------------------------
@@ -226,6 +232,48 @@ sendFragments :: ToBuilder a => [a] -> Builder
 sendFragments s = sendPure def {sendDataLines = map toBuilder s}
 
 --------------------------------------- mergeFragments  ---------------------------------------
+--ymergeFragments :: MergeFragments -> Builder
+ymergeFragments m = builders
+  where
+    builders =
+      [ Just (withEvent EventMergeFragments) ]
+      <> options (mergeOptions m)
+      <> withDefaults
+      <> mapWithData mempty (mergeData m)
+    withDefaults :: [Maybe Builder]
+    withDefaults =
+      [  maybeDefault cMerge                      (mergeMode m)
+      , ((<>) ("data: " <> cSelector <> " ")) <$> (mergeSelector m)
+      ] <> fragmentOptions                        (mergeFragmentOptions m)
+
+mergeFragments :: MergeFragments -> Builder
+mergeFragments m = format builders
+  where
+    builders =
+      [ Just (withEvent EventMergeFragments) ]
+      <> options (mergeOptions m)
+      <> withDefaults
+      <> mapWithData mempty (mergeData m)
+    withDefaults :: [Maybe Builder]
+    withDefaults =
+      [  maybeDefault cMerge                      (mergeMode m)
+      , ((<>) ("data: " <> cSelector <> " ")) <$> (mergeSelector m)
+      ] <> fragmentOptions                        (mergeFragmentOptions m)
+
+xmergeFragments :: MergeFragments -> Options -> Send
+xmergeFragments m o = Send {
+    sendEventType = EventMergeFragments
+  , sendOptions = o
+  , sendDataLines = builders  }
+  where
+    builders = catMaybes (withDefaults <> mapWithData mempty (mergeData m))
+    withDefaults :: [Maybe Builder]
+    withDefaults =
+      [  maybeDefault cMerge                      (mergeMode m)
+      , ((<>) ("data: " <> cSelector <> " ")) <$> (mergeSelector m)
+      ] <> fragmentOptions                        (mergeFragmentOptions m)
+
+
 data MergeFragments = MergeFragments {
      mergeData              :: [Builder]
    , mergeSelector          :: Maybe Builder    -- > selector: "abc123"
@@ -254,22 +302,22 @@ instance Default MergeFragments where
 -- :}
 -- "event: datastar-merge-fragments\ndata: merge upsertAttributes\ndata: selector #id\ndata: settleDuration 500\ndata: useViewTransition true\ndata: line 1\ndata: line 2\n\n"
 --
--- >>> send (def {sendDataLines = sampleDataLines})
+-- >>> sendPure (def {sendDataLines = sampleDataLines})
 -- "event: datastar-merge-fragments\ndata: line 1\ndata: line 2\n\n"
 
-mergeFragments :: MergeFragments -> Builder
-mergeFragments m = format builders
-  where
-    builders =
-      [ Just (withEvent EventMergeFragments) ]
-      <> options (mergeOptions m)
-      <> withDefaults
-      <> mapWithData mempty (mergeData m)
-    withDefaults :: [Maybe Builder]
-    withDefaults =
-      [  maybeDefault cMerge                      (mergeMode m)
-      , ((<>) ("data: " <> cSelector <> " ")) <$> (mergeSelector m)
-      ] <> fragmentOptions                        (mergeFragmentOptions m)
+-- xmergeFragments :: MergeFragments -> Builder
+-- xmergeFragments m = format builders
+--   where
+--     builders =
+--       [ Just (withEvent EventMergeFragments) ]
+--       <> options (mergeOptions m)
+--       <> withDefaults
+--       <> mapWithData mempty (mergeData m)
+--     withDefaults :: [Maybe Builder]
+--     withDefaults =
+--       [  maybeDefault cMerge                      (mergeMode m)
+--       , ((<>) ("data: " <> cSelector <> " ")) <$> (mergeSelector m)
+--       ] <> fragmentOptions                        (mergeFragmentOptions m)
 
 
 --------------------------------------- removeFragment  ---------------------------------------
@@ -302,7 +350,7 @@ instance Default RemoveFragment where
 --
 -- Example
 --
--- >>> removeFragment def {removeSelector = "id1", removeFragmentOptions = def {fragmentSettleDuration = Just 500}}
+-- >>> removeFragment def {removeSelector = "id1", removeFragmentOptions = def {settleDuration = Just 500}}
 -- "event: datastar-remove-fragments\ndata: selector id1\ndata: settleDuration 500\ndata: useViewTransition false\n\n"
 --
 -- >>> removeFragment def

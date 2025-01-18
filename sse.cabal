@@ -29,16 +29,11 @@ common deps
         base
       , bytestring
       , data-default
+      , extra
+      , neat-interpolation
       , text
       , utf8-string
---       , html-entities
---       , io-streams
---       , neat-interpolation
---       , relude
---       , silently
---       , snap
---       , snap-core
---       , time
+      , template-haskell
 
 common default-extensions
   default-extensions:
@@ -47,38 +42,17 @@ common default-extensions
       , QuasiQuotes
       , TemplateHaskell
       , TypeSynonymInstances
+      , GeneralizedNewtypeDeriving
 
 library
     import:           deps,warnings,default-extensions
-    exposed-modules:  ServerSentEventGenerator
+    exposed-modules:
+        ServerSentEventGenerator
+      , ServerSentEventGenerator.Constants
+      , ServerSentEventGenerator.Class
     other-modules:
-       Constants
        ServerSentEventGenerator.Internal
---       , Sender.Snap
+       Newtypes
     hs-source-dirs:   src
     default-language: Haskell2010
 
--- Executable datastar
---   import:  deps,warnings,default-extensions
---   default-language: Haskell2010
---   build-depends:
---       datastar
---     , filepath
---     , http-types
---     , wai
---     , wai-app-static
---     , warp
---   other-modules: SnapMain, WarpMain, Constants
---   hs-source-dirs: app
---   main-is: Main.hs
-
--- test-suite ServerSentEventGenerator-test
---     import:           deps,warnings,default-extensions
---     default-language: Haskell2010
---     type:             exitcode-stdio-1.0
---     hs-source-dirs:   test
---     main-is:          Main.hs
---     build-depends:
---         base ^>=4.19.1.0
---       , datastar
--- cabal v2-update 'hackage.haskell.org,2024-11-27T03:59:09Z'
