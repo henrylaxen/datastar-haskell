@@ -1,13 +1,19 @@
 module ServerSentEventGenerator (
 
-    EventType(..)
-  , HttpVersion(..)
+    HttpVersion(..)
+  , Sender(..)
   , ToBuilder(..)
+  , Options(..)
+  , FragmentOptions(..)
+  , EventType(..)
   , MergeMode(..)
   , Send(..)
-  , MergeFragments
+  , MergeFragments(..)
+  , RemoveFragment(..)
+  , MergeSignals(..)
+  , RemoveSignals(..)
+  , ExecuteScript(..)
   , sseHeaders
-  , send
   , sendPure
   , sendFragments
   , mergeFragments
@@ -21,7 +27,6 @@ import           Constants
 import Data.ByteString.Builder ( Builder )
 import Data.Default ( Default(..) )
 import ServerSentEventGenerator.Internal
---     ( ToBuilder(..), HttpVersion(..), maybeDefault, mapWithData, format )
 
 
 -- $setup
@@ -40,7 +45,6 @@ import ServerSentEventGenerator.Internal
 --
 -- >>> builderToString . runIdentity $ sseHeaders
 -- "Cache-control: no-cache\nContent-type: text/event-stream\nConnection: keep-alive\n"
-
 
 sseHeaders :: HttpVersion m => m Builder
 sseHeaders = do
@@ -161,7 +165,6 @@ data Send = Send {
 instance Default Send where
   def = Send EventMergeFragments [] def
 
-
 -- | convert a Send data type to a Builder, ready to be sent down the wire
 --
 -- Example
@@ -218,7 +221,6 @@ ServerSentEventGenerator.MergeFragments(
 | upsertAttributes | Update the attributes of the selector with the fragment |
 
 -}
-
 --------------------------------------- sendFragments  ---------------------------------------
 sendFragments :: ToBuilder a => [a] -> Builder
 sendFragments s = sendPure def {sendDataLines = map toBuilder s}
@@ -394,7 +396,6 @@ instance Default RemoveSignals where
 -- "event: datastar-remove-signals\nretry: 10\ndata: paths some.signal\n\n"
 -- >>> removeSignals (RemoveSignals [] (Options Nothing (Just 10)))
 -- "*** Exception: RemoveSignalsPathIsEmpty "the path cannot be an empty list"
---
 
 removeSignals :: RemoveSignals -> Builder
 removeSignals r = format builders

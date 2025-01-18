@@ -30,7 +30,7 @@ instance Sender Identity where
   send x = Identity (trace (builderToString x) ())
 
 watch :: Builder -> ()
-watch x = runIdentity (send x)  
+watch x = runIdentity (send x) 
 
 class ToBuilder a where
   toBuilder :: a -> Builder
