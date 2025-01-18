@@ -8,6 +8,7 @@ module ServerSentEventGenerator (
   , MergeFragments
   , sseHeaders
   , send
+  , sendPure
   , sendFragments
   , mergeFragments
   , removeFragment
@@ -21,28 +22,7 @@ import Data.ByteString.Builder ( Builder )
 import Data.Default ( Default(..) )
 import ServerSentEventGenerator.Internal
 --     ( ToBuilder(..), HttpVersion(..), maybeDefault, mapWithData, format )
-import Control.Exception
 
-data ServerSentEventGeneratorExceptions =
-   RemoveFragmentSelectorIsMissing String
- | SignalsSelectorIsMissing        String
- | RemoveSignalsPathIsMissing      String
- | RemoveSignalsPathIsEmpty        String
- | ExecuteScriptIsMissing          String
-  deriving Show
-instance Exception ServerSentEventGeneratorExceptions
-
-bug :: ServerSentEventGeneratorExceptions -> a
-bug (RemoveFragmentSelectorIsMissing _) =
-  throw (RemoveFragmentSelectorIsMissing "the selector is required in RemoveFragment")
-bug (SignalsSelectorIsMissing _) =
-  throw (SignalsSelectorIsMissing "the selector is required in MergeSignals")
-bug (RemoveSignalsPathIsMissing _) = 
-  throw (RemoveSignalsPathIsMissing "the path is required in RemoveSignals")
-bug (RemoveSignalsPathIsEmpty _) =
-  throw (RemoveSignalsPathIsEmpty "the path cannot be an empty list")
-bug (ExecuteScriptIsMissing _) =
-  throw (ExecuteScriptIsMissing "the script is required in ExecuteScript")
 
 -- $setup
 -- >>> import           Data.Functor.Identity
@@ -71,7 +51,7 @@ sseHeaders = do
     sseHeaders1_1 = sseHeaders2 <> "Connection: keep-alive\n"
 
 --     withDefaults :: [Maybe Builder]
---     withDefaults = 
+--     withDefaults =
 --       [  maybeDefault  (mergeMode m)
 --       ,  maybeDefault  (mergeUseUiewTransition m)
 --       ,  maybeDefault  (mergeUseUiewTransition m) ]
@@ -93,7 +73,7 @@ options ::  Options -> [Maybe Builder]
 options opt =
   [
     ("id: " <>)  <$> optionEventId opt,
-    if optionRetryDuration opt == optionRetryDuration def 
+    if optionRetryDuration opt == optionRetryDuration def
     then Nothing
     else ((<>) "retry: " . toBuilder) <$> optionRetryDuration opt
   ]
@@ -193,10 +173,10 @@ instance Default Send where
 -- "event: datastar-merge-fragments\ndata: line 1\ndata: line 2\n\n"
 
 --------------------------------------- send  ---------------------------------------
-send :: Send -> Builder
-send s = format builders
+sendPure :: Send -> Builder
+sendPure s = format builders
   where
-    builders = 
+    builders =
       [Just (withEvent (sendEventType s))]
       <> options (sendOptions s)
       <> mapWithData mempty (sendDataLines s)
@@ -241,7 +221,7 @@ ServerSentEventGenerator.MergeFragments(
 
 --------------------------------------- sendFragments  ---------------------------------------
 sendFragments :: ToBuilder a => [a] -> Builder
-sendFragments s = send def {sendDataLines = map toBuilder s}
+sendFragments s = sendPure def {sendDataLines = map toBuilder s}
 
 --------------------------------------- mergeFragments  ---------------------------------------
 data MergeFragments = MergeFragments {
@@ -278,13 +258,13 @@ instance Default MergeFragments where
 mergeFragments :: MergeFragments -> Builder
 mergeFragments m = format builders
   where
-    builders = 
+    builders =
       [ Just (withEvent EventMergeFragments) ]
       <> options (mergeOptions m)
       <> withDefaults
       <> mapWithData mempty (mergeData m)
     withDefaults :: [Maybe Builder]
-    withDefaults = 
+    withDefaults =
       [  maybeDefault cMerge                      (mergeMode m)
       , ((<>) ("data: " <> cSelector <> " ")) <$> (mergeSelector m)
       ] <> fragmentOptions                        (mergeFragmentOptions m)
@@ -377,7 +357,7 @@ mergeSignals s = format builders
       <> [Just . ((<>) ("data: " <> cSignals <> " ")) $ (signalSelector s)]
       <> withDefaults
     withDefaults :: [Maybe Builder]
-    withDefaults = 
+    withDefaults =
       [  maybeDefault cOnlyIfMissing    (signalOnlyIfMissing s) ]
 
 --------------------------------------- removeSignals  ---------------------------------------
@@ -474,8 +454,5 @@ executeScript e = format builders
             then mempty else mapWithData cAttributes (executeAttributes e)
       <> withDefaults
     withDefaults :: [Maybe Builder]
-    withDefaults = 
+    withDefaults =
       [  maybeDefault cAutoRemove    (executeAutoRemove e) ]
-
-
-

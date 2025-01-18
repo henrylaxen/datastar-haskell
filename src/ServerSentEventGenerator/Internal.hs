@@ -6,17 +6,31 @@ import Data.ByteString.Builder
 import Data.ByteString.Lazy.UTF8
     ( ByteString, fromString, toString )
 import Data.Default ( Default(..) )
-import Data.Functor.Identity ( Identity )
+import Data.Functor.Identity ( Identity(..) )
 import Data.Maybe ( catMaybes )
 -- import Data.String
 import Data.Text ( Text )
 import qualified Data.Text.Encoding as T ( encodeUtf8 )
+import Control.Exception
+import Debug.Trace
 
 class Monad m => HttpVersion m where
   isHttpVersion1_1 :: m Bool
 
 instance HttpVersion Identity  where
   isHttpVersion1_1 = return True
+
+class Monad m => Sender m where
+  send :: Builder -> m ()
+
+instance Sender IO where
+  send = putStrLn . builderToString
+
+instance Sender Identity where
+  send x = Identity (trace (builderToString x) ())
+
+watch :: Builder -> ()
+watch x = runIdentity (send x)  
 
 class ToBuilder a where
   toBuilder :: a -> Builder
@@ -74,3 +88,24 @@ mapWithData prefix = map (Just . (("data: " <> adjustSpaces prefix) <>))
 
 withEvent :: ToBuilder a => a -> Builder
 withEvent = (<>) "event: " . toBuilder
+
+data ServerSentEventGeneratorExceptions =
+   RemoveFragmentSelectorIsMissing String
+ | SignalsSelectorIsMissing        String
+ | RemoveSignalsPathIsMissing      String
+ | RemoveSignalsPathIsEmpty        String
+ | ExecuteScriptIsMissing          String
+  deriving Show
+instance Exception ServerSentEventGeneratorExceptions
+
+bug :: ServerSentEventGeneratorExceptions -> a
+bug (RemoveFragmentSelectorIsMissing _) =
+  throw (RemoveFragmentSelectorIsMissing "the selector is required in RemoveFragment")
+bug (SignalsSelectorIsMissing _) =
+  throw (SignalsSelectorIsMissing "the selector is required in MergeSignals")
+bug (RemoveSignalsPathIsMissing _) = 
+  throw (RemoveSignalsPathIsMissing "the path is required in RemoveSignals")
+bug (RemoveSignalsPathIsEmpty _) =
+  throw (RemoveSignalsPathIsEmpty "the path cannot be an empty list")
+bug (ExecuteScriptIsMissing _) =
+  throw (ExecuteScriptIsMissing "the script is required in ExecuteScript")
