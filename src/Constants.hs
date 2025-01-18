@@ -9,8 +9,6 @@ import Data.ByteString.Builder
 -- a function call in front of each data constructor, so I
 -- decided to just use the prefix "c"
 
--- type Builder = Builder
-
 cDATASTAR, cDATASTAR_EVENT, cDATASTAR_REQUEST, cVERSION, cMorph        :: Builder
 cInner, cOuter, cPrepend, cAppend, cBefore, cAfter, cUpsertAttributes  :: Builder
 cMergeFragments, cMergeSignals, cRemoveFragments, cRemoveSignals       :: Builder
@@ -67,5 +65,4 @@ cAttributes                         = "attributes"
 cEventId                            = "id"
 cRetryDuration                      = "retry"
 cAutoRemove                         = "autoRemove"
-
  

@@ -37,15 +37,14 @@ instance ToBuilder Bool where
 instance ToBuilder Int where
   toBuilder = intDec
 
-instance Eq Builder where
-  a == b = show a == show b
-
 -- | convert a Builder to a String, mainly for debugging
 builderToString :: Builder -> String
 builderToString = toString . toLazyByteString
 
-isBuilderEmpty :: Builder -> Bool
-isBuilderEmpty x = show x == show (mempty :: Builder)
+-- I created this silly function to prevent the Orphan instance
+-- warning for defining an Eq instance for Builders using show
+buildersMatch :: [Builder] -> [Builder] -> Bool
+buildersMatch x y = show x == show y
 
 -- | append linefeeds to list of Builders and add another one to the end
 
@@ -53,15 +52,14 @@ withLineFeeds :: [Builder] -> Builder
 withLineFeeds = mconcat . map (<> "\n" )
 
 -- | A convenience function which turns default values into Nothings and values not matching
---   the default into Just Builders.  
+--   the default into Just Builders, adding a space to the end of a Just case.
 
 adjustSpaces :: Builder -> Builder
-adjustSpaces x = if isBuilderEmpty x then mempty  else x <> " " 
+adjustSpaces x = if buildersMatch [mempty] [x] then mempty  else x <> " " 
 
-maybeDefault
-  :: (Eq a, Default a, ToBuilder a) => Builder -> Maybe a -> Maybe Builder
+maybeDefault :: (Eq a, Default a, ToBuilder a) => Builder -> Maybe a -> Maybe Builder
 maybeDefault _ Nothing =  Nothing
-maybeDefault prefix (Just x) = if x == def
+maybeDefault prefix (Just x) = if buildersMatch [(toBuilder x)] [(prefix)]
   then Nothing
   else Just ("data: " <> adjustSpaces prefix <> toBuilder x)
 
@@ -74,3 +72,5 @@ format x = (withLineFeeds . catMaybes) x <> "\n"
 mapWithData :: Builder -> [Builder] -> [Maybe Builder]
 mapWithData prefix = map (Just . (("data: " <> adjustSpaces prefix) <>)) 
 
+withEvent :: ToBuilder a => a -> Builder
+withEvent = (<>) "event: " . toBuilder

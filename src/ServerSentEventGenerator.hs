@@ -13,6 +13,7 @@ module ServerSentEventGenerator (
   , removeFragment
   , mergeSignals
   , removeSignals
+  , executeScript
   ) where
 
 import           Constants
@@ -22,16 +23,26 @@ import ServerSentEventGenerator.Internal
 --     ( ToBuilder(..), HttpVersion(..), maybeDefault, mapWithData, format )
 import Control.Exception
 
-
 data ServerSentEventGeneratorExceptions =
-    RemoveFragmentSelectorIsMissing String
-  | SignalsSelectorIsMissing String
-  | RemoveSignalsPathIsMissing String
-  | RemoveSignalsPathIsEmpty String
-  | ExecuteScriptIsMissing String
+   RemoveFragmentSelectorIsMissing String
+ | SignalsSelectorIsMissing        String
+ | RemoveSignalsPathIsMissing      String
+ | RemoveSignalsPathIsEmpty        String
+ | ExecuteScriptIsMissing          String
   deriving Show
 instance Exception ServerSentEventGeneratorExceptions
 
+bug :: ServerSentEventGeneratorExceptions -> a
+bug (RemoveFragmentSelectorIsMissing _) =
+  throw (RemoveFragmentSelectorIsMissing "the selector is required in RemoveFragment")
+bug (SignalsSelectorIsMissing _) =
+  throw (SignalsSelectorIsMissing "the selector is required in MergeSignals")
+bug (RemoveSignalsPathIsMissing _) = 
+  throw (RemoveSignalsPathIsMissing "the path is required in RemoveSignals")
+bug (RemoveSignalsPathIsEmpty _) =
+  throw (RemoveSignalsPathIsEmpty "the path cannot be an empty list")
+bug (ExecuteScriptIsMissing _) =
+  throw (ExecuteScriptIsMissing "the script is required in ExecuteScript")
 
 -- $setup
 -- >>> import           Data.Functor.Identity
@@ -39,10 +50,6 @@ instance Exception ServerSentEventGeneratorExceptions
 -- >>> import           Data.Text                 ( Text )
 -- >>> import qualified Data.Text.Encoding        as T
 -- >>> sampleDataLines = ["line 1", "line 2"] :: [Builder]
-
--- import qualified Data.ByteString.Lazy      as B
--- import           Data.ByteString.Lazy.UTF8
--- import qualified Data.Text                 as T
 
 -- | returns the Http header for an SSE depending
 --   on the Http version you are using. Note: you will
@@ -70,7 +77,7 @@ sseHeaders = do
 --       ,  maybeDefault  (mergeUseUiewTransition m) ]
 
 data Options = Options {
-    optionEventId :: Maybe Builder
+    optionEventId       :: Maybe Builder
   , optionRetryDuration :: Maybe Int
   } deriving (Show)
 
@@ -78,7 +85,7 @@ instance Default Options where
   def = Options {
     optionEventId = Nothing
   , optionRetryDuration = Just cDefaultSseRetryDurationMs
-    }
+  }
 
 -- | All server sent events can contain and Event Id and a Retry Duration as an option
 
@@ -89,6 +96,25 @@ options opt =
     if optionRetryDuration opt == optionRetryDuration def 
     then Nothing
     else ((<>) "retry: " . toBuilder) <$> optionRetryDuration opt
+  ]
+
+data FragmentOptions = FragmentOptions {
+    fragmentSettleDuration    :: Maybe Int
+  , fragmentUseViewTransition :: Maybe Bool
+  } deriving (Show)
+
+-- | the MergeFragments and RemoveFragment data types share these options
+
+instance Default FragmentOptions where
+  def = FragmentOptions {
+    fragmentSettleDuration     = Just cDefaultSettleDurationMs
+  , fragmentUseViewTransition  = Just cDefaultFragmentsUseViewTransitions
+  }
+
+fragmentOptions :: FragmentOptions -> [Maybe Builder]
+fragmentOptions frag =
+  [ maybeDefault cSettleDuration      (fragmentSettleDuration frag)
+  , maybeDefault cUseViewTransition   (fragmentUseViewTransition frag)
   ]
 
 -- | A sum of the possible Datastar specific sse events that can be sent
@@ -171,7 +197,7 @@ send :: Send -> Builder
 send s = format builders
   where
     builders = 
-      [Just ("event: " <> toBuilder (sendEventType s))]
+      [Just (withEvent (sendEventType s))]
       <> options (sendOptions s)
       <> mapWithData mempty (sendDataLines s)
 
@@ -222,8 +248,7 @@ data MergeFragments = MergeFragments {
      mergeData              :: [Builder]
    , mergeSelector          :: Maybe Builder    -- > selector: "abc123"
    , mergeMode              :: Maybe MergeMode  -- > Morph is default
-   , mergeSettleDuration    :: Maybe Int
-   , mergeUseViewTransition :: Maybe Bool
+   , mergeFragmentOptions   :: FragmentOptions
    , mergeOptions           :: Options
    } deriving Show
 
@@ -232,8 +257,7 @@ instance Default MergeFragments where
        mergeData              = []
     ,  mergeSelector          = Nothing
     ,  mergeMode              = Just Morph
-    ,  mergeSettleDuration    = Just cDefaultSettleDurationMs
-    ,  mergeUseViewTransition = Just False
+    ,  mergeFragmentOptions   = def
     ,  mergeOptions           = def }
 
 -- | convert a MergeFragments data type to a Builder, ready to be sent down the wire
@@ -241,10 +265,9 @@ instance Default MergeFragments where
 -- Example
 --
 -- >>> :{
--- mergeFragments def {  mergeMode = Just UpsertAttributes
+-- mergeFragments def {    mergeMode = Just UpsertAttributes
 --                       , mergeData = sampleDataLines
---                       , mergeSettleDuration = Just 500
---                       , mergeUseViewTransition = Just True
+--                       , mergeFragmentOptions = FragmentOptions (Just 500) (Just True)
 --                       , mergeSelector = Just "#id"}
 -- :}
 -- "event: datastar-merge-fragments\ndata: merge upsertAttributes\ndata: selector #id\ndata: settleDuration 500\ndata: useViewTransition true\ndata: line 1\ndata: line 2\n\n"
@@ -256,7 +279,7 @@ mergeFragments :: MergeFragments -> Builder
 mergeFragments m = format builders
   where
     builders = 
-      [ Just ("event: " <> toBuilder EventMergeFragments) ]
+      [ Just (withEvent EventMergeFragments) ]
       <> options (mergeOptions m)
       <> withDefaults
       <> mapWithData mempty (mergeData m)
@@ -264,24 +287,21 @@ mergeFragments m = format builders
     withDefaults = 
       [  maybeDefault cMerge                      (mergeMode m)
       , ((<>) ("data: " <> cSelector <> " ")) <$> (mergeSelector m)
-      ,  maybeDefault cSettleDuration             (mergeSettleDuration m)
-      ,  maybeDefault cUseViewTransition          (mergeUseViewTransition m)
-      ]                            
+      ] <> fragmentOptions                        (mergeFragmentOptions m)
+
 
 --------------------------------------- removeFragment  ---------------------------------------
 data RemoveFragment = RemoveFragment {
     removeSelector          :: Builder
-  , removeSettleDuration    :: Maybe Int
-  , removeUseViewTransition :: Maybe Bool
+  , removeFragmentOptions   :: FragmentOptions
   , removeOptions           :: Options
   } deriving Show
 
 instance Default RemoveFragment where
   def                       = RemoveFragment {
-    removeSelector          = throw (RemoveFragmentSelectorIsMissing "the selector is required in RemoveFragment")
-  , removeSettleDuration    = Just cDefaultSettleDurationMs
-  , removeUseViewTransition = Just False
-  , removeOptions           = def }
+    removeSelector          = bug (RemoveFragmentSelectorIsMissing "")
+    , removeFragmentOptions = def
+    , removeOptions         = def }
 
 
 -- | convert a RemoveFragment data type to a Builder, ready to be sent down the wire
@@ -289,8 +309,8 @@ instance Default RemoveFragment where
 --
 -- Example
 --
--- >>> removeFragment def {removeSelector = "id1", removeSettleDuration = Just 500  }
--- "event: datastar-remove-fragments\ndata: selector id1\ndata: settleDuration 500\n\n"
+-- >>> removeFragment def {removeSelector = "id1", removeFragmentOptions = def {fragmentSettleDuration = Just 500}}
+-- "event: datastar-remove-fragments\ndata: selector id1\ndata: settleDuration 500\ndata: useViewTransition false\n\n"
 --
 -- >>> removeFragment def
 -- "*** Exception: RemoveFragmentSelectorIsMissing "the selector is required in RemoveFragment"
@@ -299,15 +319,10 @@ removeFragment :: RemoveFragment -> Builder
 removeFragment r = format builders
   where
     builders =
-      [Just    ("event: " <> toBuilder EventRemoveFragments)]
+      [Just    (withEvent EventRemoveFragments)]
       <> options (removeOptions r)
       <> [Just . ((<>) ("data: " <> cSelector <> " ")) $ (removeSelector r)]
-      <> withDefaults
-    withDefaults :: [Maybe Builder]
-    withDefaults = 
-      [  maybeDefault cSettleDuration    (removeSettleDuration r)
-      ,  maybeDefault cUseViewTransition (removeUseViewTransition r) ]
-
+      <> fragmentOptions                           (removeFragmentOptions r)
 --------------------------------------- mergeSignals  ---------------------------------------
 data MergeSignals = MergeSignals {
     signalSelector          :: Builder
@@ -317,7 +332,7 @@ data MergeSignals = MergeSignals {
 
 instance Default MergeSignals where
   def                       = MergeSignals {
-    signalSelector          = throw (SignalsSelectorIsMissing "the selector is required in MergeSignals")
+    signalSelector          = bug (SignalsSelectorIsMissing "")
   , signalOnlyIfMissing     = Just cDefaultOnlyIfMissing
   , signalOptions           = def }
 
@@ -336,7 +351,7 @@ mergeSignals :: MergeSignals -> Builder
 mergeSignals s = format builders
   where
     builders =
-      [Just    ("event: " <> toBuilder EventMergeSignals)]
+      [Just    (withEvent EventMergeSignals)]
       <> options (signalOptions s)
       <> [Just . ((<>) ("data: " <> cSignals <> " ")) $ (signalSelector s)]
       <> withDefaults
@@ -352,7 +367,7 @@ data RemoveSignals = RemoveSignals {
 
 instance Default RemoveSignals where
   def                       = RemoveSignals {
-    removeSignalsPath        = throw (RemoveSignalsPathIsMissing "the path is required in RemoveSignals")
+    removeSignalsPath        = bug (RemoveSignalsPathIsMissing "")
   , removeSignalsOptions     = def }
 
 -- | convert a RemoveSignals data type to a Builder, ready to be sent down the wire
@@ -375,54 +390,47 @@ removeSignals :: RemoveSignals -> Builder
 removeSignals r = format builders
   where
     builders =
-       [Just    ("event: " <> toBuilder EventRemoveSignals)]
+       [Just    (withEvent EventRemoveSignals)]
        <> options (removeSignalsOptions r)
        <> if null (removeSignalsPath r)
-             then throw (RemoveSignalsPathIsEmpty "the path cannot be an empty list")
+             then bug (RemoveSignalsPathIsEmpty "")
              else mapWithData cPaths (removeSignalsPath r)
 
 --------------------------------------- Execute Script  ---------------------------------------
 data ExecuteScript = ExecuteScript {
-    executeScript        :: Builder
-  , executeAttributes    :: Maybe [Builder]
+    executeScriptJS      :: Builder
+  , executeAttributes    :: [Builder]
   , executeAutoRemove    :: Maybe Bool
-  , executescriptOptions :: Options
+  , executeScriptOptions :: Options
   } deriving Show
 
 instance Default ExecuteScript where
   def                    = ExecuteScript {
-    executeScript        = throw (ExecuteScriptIsMissing "the script is required in ExecuteScript")
-  , executeAttributes    = Just [cDefaultAttributes]
+    executeScriptJS      = bug (ExecuteScriptIsMissing "")
+  , executeAttributes    = [cDefaultAttributes]
   , executeAutoRemove    = Just cDefaultAutoRemove
-  , executescriptOptions = def }
+  , executeScriptOptions = def }
 
 -- | convert a ExecuteScript data type to a Builder, ready to be sent down the wire
 -- Note: the executescriptPath field is required
 --
 -- Example
 --
--- >>> executescript def {executescriptPath = ["user.name", "user.email"]}
--- "event: datastar-remove-signals\ndata: paths user.name\ndata: paths user.email\n\n"
+-- >>> executeScript (ExecuteScript "console.log('hi')" ["type text/javascript"] (Just False) def)
+-- "event: datastar-execute-script\ndata: script console.log('hi')\ndata: attributes type text/javascript\ndata: autoRemove false\n\n"
 --
--- >>> executescript def
--- "*** Exception: ExecuteScriptPathIsMissing "the path is required in ExecuteScript"
--- >>> executescript (ExecuteScript ["some.signal"] (Options Nothing (Just 10)))
--- "event: datastar-remove-signals\nretry: 10\ndata: paths some.signal\n\n"
--- >>> executescript (ExecuteScript [] (Options Nothing (Just 10)))
--- "*** Exception: ExecuteScriptPathIsEmpty "the path cannot be an empty list"
---
+-- >>> executeScript def
+-- "*** Exception: ExecuteScriptIsMissing "the script is required in ExecuteScript"
 
-executescript :: ExecuteScript -> Builder
-executescript e = format builders
+executeScript :: ExecuteScript -> Builder
+executeScript e = format builders
   where
     builders =
-      [Just    ("event: " <> toBuilder EventExecuteScript)]
-      <> options (executescriptOptions e)
-      <> if null (executeAttributes e) || (executeAttributes e) == Just [cDefaultAttributes]
-            then mempty
-            else case executeAttributes of
-                   Nothing -> Nothing
-                   Just xs ->  mapWithData cAttributes (executeAttributes e)
+      [Just    (withEvent EventExecuteScript)]
+      <> mapWithData "script" [executeScriptJS e]
+      <> options (executeScriptOptions e)
+      <> if null (executeAttributes e) || buildersMatch (executeAttributes e) [cDefaultAttributes]
+            then mempty else mapWithData cAttributes (executeAttributes e)
       <> withDefaults
     withDefaults :: [Maybe Builder]
     withDefaults = 
