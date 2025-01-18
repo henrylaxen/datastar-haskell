@@ -291,6 +291,17 @@ mergeFragments m = format builders
 
 
 --------------------------------------- removeFragment  ---------------------------------------
+{- From the README.MD
+ServerSentEventGenerator.RemoveFragments(
+    selector: string,
+    options?: {
+        settleDuration?: durationInMilliseconds,
+        useViewTransition?: boolean,
+        eventId?: string,
+        retryDuration?: durationInMilliseconds
+    }
+)
+-}
 data RemoveFragment = RemoveFragment {
     removeSelector          :: Builder
   , removeFragmentOptions   :: FragmentOptions
@@ -324,6 +335,16 @@ removeFragment r = format builders
       <> [Just . ((<>) ("data: " <> cSelector <> " ")) $ (removeSelector r)]
       <> fragmentOptions                           (removeFragmentOptions r)
 --------------------------------------- mergeSignals  ---------------------------------------
+{- From the README.MD
+ServerSentEventGenerator.MergeSignals(
+    signals: string,
+    options ?: {
+        onlyIfMissing?: boolean,
+        eventId?: string,
+        retryDuration?: durationInMilliseconds
+     }
+ )
+-}
 data MergeSignals = MergeSignals {
     signalSelector          :: Builder
   , signalOnlyIfMissing     :: Maybe Bool
@@ -360,6 +381,15 @@ mergeSignals s = format builders
       [  maybeDefault cOnlyIfMissing    (signalOnlyIfMissing s) ]
 
 --------------------------------------- removeSignals  ---------------------------------------
+{- From the README.MD
+ServerSentEventGenerator.RemoveSignals(
+    paths: string[],
+    options?: {
+        eventId?: string,
+        retryDuration?: durationInMilliseconds
+    }
+)
+-}
 data RemoveSignals = RemoveSignals {
     removeSignalsPath      :: [Builder]
   , removeSignalsOptions   :: Options
@@ -397,6 +427,17 @@ removeSignals r = format builders
              else mapWithData cPaths (removeSignalsPath r)
 
 --------------------------------------- Execute Script  ---------------------------------------
+{- From the README.MD
+ServerSentEventGenerator.ExecuteScript(
+    script: string,
+    options?: {
+        autoRemove?: boolean,
+        attributes?: string,
+        eventId?: string,
+        retryDuration?: durationInMilliseconds
+    }
+)
+-}
 data ExecuteScript = ExecuteScript {
     executeScriptJS      :: Builder
   , executeAttributes    :: [Builder]
