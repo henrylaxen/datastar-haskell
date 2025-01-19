@@ -56,15 +56,16 @@ sseHeaders = do
     sseHeaders1_1 = sseHeaders2 <> "Connection: keep-alive\n"
 
 data Options = Options {
-    eventId       :: Builder
+    eventId       :: EventId
   , retryDuration :: RetryDuration
   } deriving (Show)
 
 instance Default Options where
   def = Options {
-    eventId = mempty
+    eventId = def
   , retryDuration = def
   }
+
 
 -- | All server sent events can contain and Event Id and a Retry Duration as an option
 --   This works, because of the options in opt are equal to their defaults, they will
@@ -73,9 +74,24 @@ instance Default Options where
 options ::  Options -> [Maybe Builder]
 options opt =
   [
-    withDefault "id:"    (eventId opt)
-  , withDefault "retry:" (retryDuration opt)
+    withDefault   (eventId opt)
+  , withDefault   (retryDuration opt)
   ]
+
+instance DsCommand Options where
+  dsCommand opt =
+    let
+      a = if eventId opt == def       then mempty else "id: "    <>  toBuilder (eventId opt) <> "\n"
+      b = if retryDuration opt == def then mempty else "retry: " <>  toBuilder (retryDuration opt)  <> "\n"
+    in mconcat [a,b]
+
+
+
+-- withOptions :: Builder -> Int -> Options
+-- withOptions x y =
+--   let
+--     opt = Options (EventId x) (RetryDuration y)
+--     mbId = if x == def :: EventId then
 
 data FragmentOptions = FragmentOptions {
     settleDuration    :: SettleDuration
@@ -92,8 +108,8 @@ instance Default FragmentOptions where
 
 fragmentOptions :: FragmentOptions -> [Maybe Builder]
 fragmentOptions frag =
-  [ withDefault cSettleDuration       (settleDuration frag)
-  , withDefault cUseViewTransition    (useViewTransition frag)
+  [ withDefault (settleDuration frag)
+  , withDefault (useViewTransition frag)
   ]
 
 -- | A sum of the possible Datastar specific sse events that can be sent
@@ -139,6 +155,10 @@ instance ToBuilder MergeMode where
    toBuilder Before           = cBefore
    toBuilder After            = cAfter
    toBuilder UpsertAttributes = cUpsertAttributes
+
+instance DsCommand MergeMode where
+  dsCommand x = cData <> " " <> cMerge <> " " <> toBuilder x
+
 
 {- From the README.MD
 ServerSentEventGenerator.send(
@@ -265,9 +285,9 @@ mergeFragments m = format builders
       <> withDefaults
       <> mapWithData mempty (mergeData m)
     withDefaults =
-      [  withDefault cMerge          (mergeMode m)
-      ,  withDefault cSelector       (mergeSelector m)
-      ] <> fragmentOptions           (mergeFragmentOptions m)
+      [  withDefault        (mergeMode m)
+      ,  withDefault        (mergeSelector m)
+      ] <> fragmentOptions  (mergeFragmentOptions m)
 
 
 
@@ -312,9 +332,9 @@ removeFragment r = format builders
     builders :: [Maybe Builder]
     builders =
       [Just  (withEvent EventRemoveFragments)]
-      <> options                                                 (removeOptions r)
-      <> [withRequired RemoveFragmentSelectorIsMissing cSelector (removeSelector r)]
-      <> fragmentOptions                                         (removeFragmentOptions r)
+      <> options                                           (removeOptions r)
+      <> [withRequired RemoveFragmentSelectorIsMissing     (removeSelector r)]
+      <> fragmentOptions                                   (removeFragmentOptions r)
 --------------------------------------- mergeSignals  ---------------------------------------
 
 {- From the README.MD
@@ -328,16 +348,17 @@ ServerSentEventGenerator.MergeSignals(
  )
 -}
 data MergeSignals = MergeSignals {
-    signalSelector          :: Builder
-  , signalOnlyIfMissing     :: OnlyIfMissing  
+    signal                  :: Signals
+  , signalOnlyIfMissing     :: OnlyIfMissing
   , signalOptions           :: Options
   } deriving Show
 
 instance Default MergeSignals where
   def                       = MergeSignals {
-    signalSelector          = def
+    signal                  = def
   , signalOnlyIfMissing     = def
   , signalOptions           = def }
+
 
 -- | convert a MergeSignals data type to a Builder, ready to be sent down the wire
 -- Note: the signalSelector field is required
@@ -354,12 +375,12 @@ mergeSignals :: MergeSignals -> Builder
 mergeSignals s = format builders
   where
     builders :: [Maybe Builder]
-    builders = 
+    builders =
         (Just    (withEvent EventMergeSignals))
         : options (signalOptions s)
-        <> [  withRequired SignalsSelectorIsMissing cSignals (signalSelector s)
-            , withDefault  cOnlyIfMissing    (signalOnlyIfMissing s) ]
-      
+        <> [  withRequired SignalsSelectorIsMissing  (signal s)
+            , withDefault                            (signalOnlyIfMissing s) ]
+
 --------------------------------------- removeSignals  ---------------------------------------
 {- From the README.MD
 ServerSentEventGenerator.RemoveSignals(
@@ -401,7 +422,7 @@ removeSignals r = format builders
     builders =
        (Just    (withEvent EventRemoveSignals))
        : options (removeSignalsOptions r)
-       <> [withRequired RemoveSignalsPathIsEmpty cPaths (removeSignalsPath r) ]
+       <> [withRequired RemoveSignalsPathIsEmpty (removeSignalsPath r) ]
 
 --------------------------------------- Execute Script  ---------------------------------------
 {- From the README.MD
@@ -446,9 +467,6 @@ executeScript e = format builders
     builders =
       (Just    (withEvent EventExecuteScript))
       : options (executeScriptOptions e)
-      <> [withRequired ExecuteScriptIsMissing cScript (executeScriptJS e)]
-      <> [withDefault cAttributes (executeAttributes e)]
-      <> [withDefault cAutoRemove    (executeAutoRemove e) ]
-
-      
-
+      <> [withRequired ExecuteScriptIsMissing (executeScriptJS e)]
+      <> [withDefault (executeAttributes e)]
+      <> [withDefault (executeAutoRemove e) ]

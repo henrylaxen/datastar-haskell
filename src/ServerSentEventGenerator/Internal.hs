@@ -1,7 +1,7 @@
 module ServerSentEventGenerator.Internal where
 
 import ServerSentEventGenerator.Class
-import ServerSentEventGenerator.Newtypes
+-- import ServerSentEventGenerator.Newtypes
 import Data.ByteString.Builder
 import Data.Default ( Default(..) )
 import Data.Maybe ( catMaybes )
@@ -48,19 +48,24 @@ mapWithData prefix bs = map (Just . (("data: " <> adjustSpaces prefix) <>)) bs
 withEvent :: ToBuilder a => a -> Builder
 withEvent = (<>) "event: " . toBuilder
 
-withRequired :: (Default a, Eq a, ToBuilder a) => ServerSentEventGeneratorExceptions -> Builder -> a -> Maybe Builder
-withRequired exception prefix value = if toBuilder value == mempty
+withRequired :: (DsCommand a, Default a, Eq a, ToBuilder a) => ServerSentEventGeneratorExceptions -> a -> Maybe Builder
+withRequired exception value = if toBuilder value == mempty
   then bug exception
-  else withDefault prefix value
+  else withDefault value
 
 -- | if the value is equal to the default value, replace it with Nothing,
 --   which will later be eliminated from the list of Builders.
 --   if they aren't equal, wrap the result in a Just and add "data:
 --   the message 
-withDefault ::(Default a, Eq a, ToBuilder a) => Builder -> a -> Maybe Builder
-withDefault prefix value = if value == def
+-- withDefault ::(Default a, Eq a, ToBuilder a) => Builder -> a -> Maybe Builder
+-- withDefault prefix value = if value == def
+--   then Nothing
+--   else Just ("data: " <> prefix <> " " <> toBuilder value)
+
+withDefault ::(DsCommand a, Default a, Eq a, ToBuilder a) => a -> Maybe Builder
+withDefault value = if value == def
   then Nothing
-  else Just ("data: " <> prefix <> " " <> toBuilder value)
+  else Just (dsCommand value <> ": " <> toBuilder value)
 
 data ServerSentEventGeneratorExceptions =
    RemoveFragmentSelectorIsMissing 

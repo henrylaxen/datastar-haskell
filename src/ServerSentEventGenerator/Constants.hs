@@ -64,6 +64,9 @@ cAttributes                         = "attributes"
 cEventId                            = "id"
 cRetryDuration                      = "retry"
 cAutoRemove                         = "autoRemove"
+-- added by henry
+cData :: Builder
+cData                               = "data" 
  
 -- DATASTAR_KEY = "datastar"
 -- VERSION                   = "1.0.0-beta.1"

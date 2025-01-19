@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module ServerSentEventGenerator.Class where
 
 import Debug.Trace
@@ -6,6 +7,8 @@ import Data.Functor.Identity ( Identity(..) )
 import Data.Text ( Text )
 import Data.ByteString.Lazy.UTF8
 import System.IO
+import Data.Default
+
 
 import qualified Data.Text.Encoding as T ( encodeUtf8 )
 
@@ -62,3 +65,9 @@ instance ToBuilder Bool where
 class DsCommand a where
   dsCommand :: a -> Builder
   
+instance Eq Builder where
+ a == b = show a == show b
+
+instance Default Builder where
+  def = mempty
+
