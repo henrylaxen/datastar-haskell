@@ -27,10 +27,10 @@ import ServerSentEventGenerator.Constants
 import Data.ByteString.Builder --  ( Builder )
 import Data.Default ( Default(..) )
 import ServerSentEventGenerator.Internal
+import ServerSentEventGenerator.Newtypes
 import ServerSentEventGenerator.Class
 import           Data.Maybe
 import Control.Monad
-import Newtypes
 
 -- $setup
 -- >>> import           Data.Functor.Identity
@@ -49,8 +49,6 @@ import Newtypes
 -- >>> runIdentity $ sseHeaders
 -- "Cache-control: no-cache\nContent-type: text/event-stream\nConnection: keep-alive\n"
 
-
-    
 sseHeaders :: HttpVersion m => m Builder
 sseHeaders = do
   b <- isHttpVersion1_1
@@ -61,13 +59,13 @@ sseHeaders = do
 
 data Options = Options {
     eventId       :: SB
-  , retryDuration :: Int
+  , retryDuration :: RetryDuration
   } deriving (Show)
 
 instance Default Options where
   def = Options {
     eventId = mempty
-  , retryDuration = cDefaultSseRetryDurationMs
+  , retryDuration = def
   }
 
 -- | All server sent events can contain and Event Id and a Retry Duration as an option
@@ -75,12 +73,8 @@ instance Default Options where
 options ::  Options -> [Maybe Builder]
 options opt =
   [
-    withDefault "id: " (eventId opt)
-  , withDefault "retry: " (retryDuration def)
---    ("id: " <>)  <$> eventId opt,
---     if retryDuration opt == retryDuration def
---     then Nothing
---     else ((<>) "retry: " . toBuilder) <$> retryDuration opt
+    withDefault "id: "    (eventId opt)
+  , withDefault "retry: " (retryDuration opt)
   ]
 
 data FragmentOptions = FragmentOptions {
@@ -95,7 +89,6 @@ instance Default FragmentOptions where
     settleDuration     = def
   , useViewTransition  = def
   }
-
 
 fragmentOptions :: FragmentOptions -> [Maybe Builder]
 fragmentOptions frag =
@@ -232,19 +225,7 @@ sendFragments :: ToBuilder a => [a] -> Builder
 sendFragments s = sendPure def {sendDataLines = map toBuilder s}
 
 --------------------------------------- mergeFragments  ---------------------------------------
---ymergeFragments :: MergeFragments -> Builder
-ymergeFragments m = builders
-  where
-    builders =
-      [ Just (withEvent EventMergeFragments) ]
-      <> options (mergeOptions m)
-      <> withDefaults
-      <> mapWithData mempty (mergeData m)
-    withDefaults :: [Maybe Builder]
-    withDefaults =
-      [  maybeDefault cMerge                      (mergeMode m)
-      , ((<>) ("data: " <> cSelector <> " ")) <$> (mergeSelector m)
-      ] <> fragmentOptions                        (mergeFragmentOptions m)
+-- withDefault cUseViewTransition    (useViewTransition frag)
 
 mergeFragments :: MergeFragments -> Builder
 mergeFragments m = format builders
@@ -254,30 +235,16 @@ mergeFragments m = format builders
       <> options (mergeOptions m)
       <> withDefaults
       <> mapWithData mempty (mergeData m)
-    withDefaults :: [Maybe Builder]
+--    withDefaults :: [Maybe Builder]
     withDefaults =
       [  maybeDefault cMerge                      (mergeMode m)
       , ((<>) ("data: " <> cSelector <> " ")) <$> (mergeSelector m)
       ] <> fragmentOptions                        (mergeFragmentOptions m)
-
-xmergeFragments :: MergeFragments -> Options -> Send
-xmergeFragments m o = Send {
-    sendEventType = EventMergeFragments
-  , sendOptions = o
-  , sendDataLines = builders  }
-  where
-    builders = catMaybes (withDefaults <> mapWithData mempty (mergeData m))
-    withDefaults :: [Maybe Builder]
-    withDefaults =
-      [  maybeDefault cMerge                      (mergeMode m)
-      , ((<>) ("data: " <> cSelector <> " ")) <$> (mergeSelector m)
-      ] <> fragmentOptions                        (mergeFragmentOptions m)
-
 
 data MergeFragments = MergeFragments {
-     mergeData              :: [Builder]
-   , mergeSelector          :: Maybe Builder    -- > selector: "abc123"
-   , mergeMode              :: Maybe MergeMode  -- > Morph is default
+     mergeData              :: [SB]
+   , mergeSelector          :: Selector
+   , mergeMode              :: MergeMode  -- > Morph is default
    , mergeFragmentOptions   :: FragmentOptions
    , mergeOptions           :: Options
    } deriving Show
@@ -289,7 +256,7 @@ instance Default MergeFragments where
     ,  mergeMode              = Just Morph
     ,  mergeFragmentOptions   = def
     ,  mergeOptions           = def }
-
+{-
 -- | convert a MergeFragments data type to a Builder, ready to be sent down the wire
 --
 -- Example
@@ -505,3 +472,4 @@ executeScript e = format builders
     withDefaults :: [Maybe Builder]
     withDefaults =
       [  maybeDefault cAutoRemove    (executeAutoRemove e) ]
+-}

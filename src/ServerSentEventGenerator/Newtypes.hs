@@ -1,5 +1,7 @@
-module Newtypes where
+module ServerSentEventGenerator.Newtypes where
 
+import NeatInterpolation
+import qualified Data.Text as T
 import Data.Default
 import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Constants

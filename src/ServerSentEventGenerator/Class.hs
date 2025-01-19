@@ -46,8 +46,8 @@ instance ToBuilder ByteString where
 instance ToBuilder Text where
   toBuilder = byteString . T.encodeUtf8
 
-instance ToBuilder String where
-  toBuilder = lazyByteString . fromString
+instance ToBuilder Char where
+  toBuilder = Data.ByteString.Builder.char8
 
 instance ToBuilder Int where
   toBuilder =  intDec

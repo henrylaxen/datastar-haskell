@@ -1,6 +1,7 @@
 module ServerSentEventGenerator.Internal where
 
 import ServerSentEventGenerator.Class
+import ServerSentEventGenerator.Newtypes
 import Data.ByteString.Builder
 import Data.Default ( Default(..) )
 import Data.Maybe ( catMaybes )
@@ -13,16 +14,16 @@ buildersMatch x y = show x == show y
 
 -- | append linefeeds to list of Builders and add another one to the end
 
-withLineFeeds :: [Builder] -> Builder
+withLineFeeds :: [SB] -> SB
 withLineFeeds = mconcat . map (<> "\n" )
 
 -- | A convenience function which turns default values into Nothings and values not matching
---   the default into Just Builders, adding a space to the end of a Just case.
+--   the default into Just SBs, adding a space to the end of a Just case.
 
-adjustSpaces :: Builder -> Builder
+adjustSpaces :: SB -> SB
 adjustSpaces x = if buildersMatch [mempty] [x] then mempty  else x <> " " 
 
-maybeDefault :: (Eq a, Default a, ToBuilder a) => Builder -> Maybe a -> Maybe Builder
+maybeDefault :: (Eq a, Default a, ToBuilder a) => SB -> Maybe a -> Maybe Builder
 maybeDefault _ Nothing =  Nothing
 maybeDefault prefix (Just x) = if buildersMatch [(toBuilder x)] [(prefix)]
   then Nothing
@@ -31,20 +32,22 @@ maybeDefault prefix (Just x) = if buildersMatch [(toBuilder x)] [(prefix)]
 -- | Takes a list of Maybe Builder, throws away the Nothings, and appends line feeds
 --   to the rest, removing the Justs
 
-format :: [Maybe Builder] -> Builder
+format :: [Maybe SB] -> SB
 format x = (withLineFeeds . catMaybes) x <> "\n"
 
-mapWithData :: Builder -> [Builder] -> [Maybe Builder]
-mapWithData prefix = map (Just . (("data: " <> adjustSpaces prefix) <>)) 
+mapWithData :: SB -> [SB] -> [Maybe SB]
+mapWithData prefix bs =
+  if null bs
+  then (error "mapWithData has no date")
+  else map (Just . (("data: " <> adjustSpaces prefix) <>)) bs
 
-withEvent :: ToBuilder a => a -> Builder
+withEvent :: ToBuilder a => a -> SB
 withEvent = (<>) "event: " . toBuilder
 
-withDefault ::(Default a, Eq a, ToBuilder a) => Builder -> a -> Maybe Builder
+withDefault ::(Default a, Eq a, ToBuilder a) => SB -> a -> Maybe SB
 withDefault prefix x = if x == def
   then Nothing
   else Just ("data: " <> adjustSpaces prefix <> toBuilder x)
-
 
 data ServerSentEventGeneratorExceptions =
    RemoveFragmentSelectorIsMissing String
