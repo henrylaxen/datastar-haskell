@@ -89,3 +89,4 @@ instance Default AutoRemove
   where def = AutoRemove cDefaultAutoRemove
 instance DsCommand AutoRemove where
   dsCommand _ = cData <> ": " <> cAutoRemove
+

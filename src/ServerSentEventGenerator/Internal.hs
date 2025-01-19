@@ -20,14 +20,8 @@ withLineFeeds = mconcat . map (<> "\n" )
 -- | A convenience function which turns default values into Nothings and values not matching
 --   the default into Just Builders, adding a space to the end of a Just case.
 
-adjustSpaces :: Builder -> Builder
-adjustSpaces x = if buildersMatch [mempty] [x] then mempty  else x <> " " 
-
-maybeDefault :: (Eq a, Default a, ToBuilder a) => Builder -> Maybe a -> Maybe Builder
-maybeDefault _ Nothing =  Nothing
-maybeDefault prefix (Just x) = if buildersMatch [(toBuilder x)] [(prefix)]
-  then Nothing
-  else Just ("data: " <> adjustSpaces prefix <> toBuilder x)
+-- adjustSpaces :: Builder -> Builder
+-- adjustSpaces x = if buildersMatch [mempty] [x] then mempty  else x <> " " 
 
 -- | Takes a list of Maybe Builder, throws away the Nothings, and appends line feeds
 --   to the rest, removing the Justs
@@ -35,8 +29,8 @@ maybeDefault prefix (Just x) = if buildersMatch [(toBuilder x)] [(prefix)]
 format :: [Maybe Builder] -> Builder
 format x = (withLineFeeds . catMaybes) x <> "\n"
 
-mapWithData :: Builder -> [Builder] -> [Maybe Builder]
-mapWithData prefix bs = map (Just . (("data: " <> adjustSpaces prefix) <>)) bs
+-- mapWithData :: Builder -> [Builder] -> [Maybe Builder]
+-- mapWithData prefix bs = map (Just . (("data: " <> adjustSpaces prefix) <>)) bs
 
 -- check to see if empty data lines are allowed?
 -- mapWithData :: Builder -> [Builder] -> [Maybe Builder]

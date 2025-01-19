@@ -14,7 +14,7 @@ module ServerSentEventGenerator (
   , RemoveSignals(..)
   , ExecuteScript(..)
   , sseHeaders
-  , sendPure
+--   , sendPure
   , sendFragments
   , mergeFragments
   , removeFragment
@@ -84,8 +84,6 @@ instance DsCommand Options where
       a = if eventId opt == def       then mempty else "id: "    <>  toBuilder (eventId opt) <> "\n"
       b = if retryDuration opt == def then mempty else "retry: " <>  toBuilder (retryDuration opt)  <> "\n"
     in mconcat [a,b]
-
-
 
 -- withOptions :: Builder -> Int -> Options
 -- withOptions x y =
@@ -171,7 +169,7 @@ ServerSentEventGenerator.send(
 
 data Send = Send {
     sendEventType     :: EventType
-  , sendDataLines     :: [Builder]
+  , sendDataLines     :: DataLines
   , sendOptions       :: Options
   } deriving Show
 
@@ -182,7 +180,7 @@ data Send = Send {
 --------------------------------------- Functions Start Here ---------------------------------------
 
 instance Default Send where
-  def = Send EventMergeFragments [] def
+  def = Send EventMergeFragments def def
 
 -- | convert a Send data type to a Builder, ready to be sent down the wire
 --
@@ -201,7 +199,7 @@ sendPure s = format builders
     builders =
       [Just (withEvent (sendEventType s))]
       <> options (sendOptions s)
-      <> mapWithData mempty (sendDataLines s)
+--      <> map withDefault (sendDataLines s)
 
 -- | A convenience function that takes a list of ByteString/String/Text and
 --   outputs a Builder, assuming the rest of the Send Data Type fields are
@@ -242,11 +240,11 @@ ServerSentEventGenerator.MergeFragments(
 -}
 --------------------------------------- sendFragments  ---------------------------------------
 sendFragments :: ToBuilder a => [a] -> Builder
-sendFragments s = sendPure def {sendDataLines = map toBuilder s}
+sendFragments s = sendPure def {sendDataLines =  DataLines  (map toBuilder s)}
 
 --------------------------------------- mergeFragments  ---------------------------------------
 data MergeFragments = MergeFragments {
-     mergeData              :: [Builder]
+     mergeData              :: DataLines
    , mergeSelector          :: Selector
    , mergeMode              :: MergeMode  -- > Morph is default
    , mergeFragmentOptions   :: FragmentOptions
@@ -255,7 +253,7 @@ data MergeFragments = MergeFragments {
 
 instance Default MergeFragments where
   def                        = MergeFragments {
-       mergeData              = []
+       mergeData              = def
     ,  mergeSelector          = def
     ,  mergeMode              = def
     ,  mergeFragmentOptions   = def
@@ -276,6 +274,9 @@ instance Default MergeFragments where
 -- >>> sendPure (def {sendDataLines = sampleDataLines})
 -- "event: datastar-merge-fragments\ndata: line 1\ndata: line 2\n\n"
 
+unDataLines :: DataLines -> [Builder]
+unDataLines (DataLines x) = x
+
 mergeFragments :: MergeFragments -> Builder
 mergeFragments m = format builders
   where
@@ -283,7 +284,7 @@ mergeFragments m = format builders
       [ Just (withEvent EventMergeFragments) ]
       <> options (mergeOptions m)
       <> withDefaults
-      <> mapWithData mempty (mergeData m)
+      <> map withDefault (unDataLines (mergeData  m))
     withDefaults =
       [  withDefault        (mergeMode m)
       ,  withDefault        (mergeSelector m)

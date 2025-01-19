@@ -23,8 +23,6 @@ newtypeStrings = [
   , ["Script","Builder","mempty",""]
   , ["Attributes","[Builder]","[cDefaultAttributes]",""]
   , ["AutoRemove","Bool","",""]
---  , ["MergeMode","Bool","",""]
---  , ["SignalSelector","Bool","",""]
   ]
 
 template :: [T.Text] -> String
@@ -51,8 +49,6 @@ import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Constants
 import Data.ByteString.Builder
 |]
-
---  dsCommand = if T.null d then "c" <> a else d
 
 fixup :: (Eq a, Data.String.IsString a, Semigroup a) => [a] -> [a]
 fixup [a,b,c,d]
