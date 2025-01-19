@@ -29,8 +29,6 @@ import Data.Default ( Default(..) )
 import ServerSentEventGenerator.Internal
 import ServerSentEventGenerator.Newtypes
 import ServerSentEventGenerator.Class
-import           Data.Maybe
-import Control.Monad
 
 -- $setup
 -- >>> import           Data.Functor.Identity
@@ -58,7 +56,7 @@ sseHeaders = do
     sseHeaders1_1 = sseHeaders2 <> "Connection: keep-alive\n"
 
 data Options = Options {
-    eventId       :: SB
+    eventId       :: Builder
   , retryDuration :: RetryDuration
   } deriving (Show)
 
@@ -69,12 +67,14 @@ instance Default Options where
   }
 
 -- | All server sent events can contain and Event Id and a Retry Duration as an option
+--   This works, because of the options in opt are equal to their defaults, they will
+--   later be removed from the output
 
 options ::  Options -> [Maybe Builder]
 options opt =
   [
-    withDefault "id: "    (eventId opt)
-  , withDefault "retry: " (retryDuration opt)
+    withDefault "id:"    (eventId opt)
+  , withDefault "retry:" (retryDuration opt)
   ]
 
 data FragmentOptions = FragmentOptions {
@@ -225,24 +225,8 @@ sendFragments :: ToBuilder a => [a] -> Builder
 sendFragments s = sendPure def {sendDataLines = map toBuilder s}
 
 --------------------------------------- mergeFragments  ---------------------------------------
--- withDefault cUseViewTransition    (useViewTransition frag)
-
-mergeFragments :: MergeFragments -> Builder
-mergeFragments m = format builders
-  where
-    builders =
-      [ Just (withEvent EventMergeFragments) ]
-      <> options (mergeOptions m)
-      <> withDefaults
-      <> mapWithData mempty (mergeData m)
---    withDefaults :: [Maybe Builder]
-    withDefaults =
-      [  maybeDefault cMerge                      (mergeMode m)
-      , ((<>) ("data: " <> cSelector <> " ")) <$> (mergeSelector m)
-      ] <> fragmentOptions                        (mergeFragmentOptions m)
-
 data MergeFragments = MergeFragments {
-     mergeData              :: [SB]
+     mergeData              :: [Builder]
    , mergeSelector          :: Selector
    , mergeMode              :: MergeMode  -- > Morph is default
    , mergeFragmentOptions   :: FragmentOptions
@@ -252,11 +236,11 @@ data MergeFragments = MergeFragments {
 instance Default MergeFragments where
   def                        = MergeFragments {
        mergeData              = []
-    ,  mergeSelector          = Nothing
-    ,  mergeMode              = Just Morph
+    ,  mergeSelector          = def
+    ,  mergeMode              = def
     ,  mergeFragmentOptions   = def
     ,  mergeOptions           = def }
-{-
+
 -- | convert a MergeFragments data type to a Builder, ready to be sent down the wire
 --
 -- Example
@@ -272,19 +256,19 @@ instance Default MergeFragments where
 -- >>> sendPure (def {sendDataLines = sampleDataLines})
 -- "event: datastar-merge-fragments\ndata: line 1\ndata: line 2\n\n"
 
--- xmergeFragments :: MergeFragments -> Builder
--- xmergeFragments m = format builders
---   where
---     builders =
---       [ Just (withEvent EventMergeFragments) ]
---       <> options (mergeOptions m)
---       <> withDefaults
---       <> mapWithData mempty (mergeData m)
---     withDefaults :: [Maybe Builder]
---     withDefaults =
---       [  maybeDefault cMerge                      (mergeMode m)
---       , ((<>) ("data: " <> cSelector <> " ")) <$> (mergeSelector m)
---       ] <> fragmentOptions                        (mergeFragmentOptions m)
+mergeFragments :: MergeFragments -> Builder
+mergeFragments m = format builders
+  where
+    builders =
+      [ Just (withEvent EventMergeFragments) ]
+      <> options (mergeOptions m)
+      <> withDefaults
+      <> mapWithData mempty (mergeData m)
+    withDefaults =
+      [  withDefault cMerge          (mergeMode m)
+      ,  withDefault cSelector       (mergeSelector m)
+      ] <> fragmentOptions           (mergeFragmentOptions m)
+
 
 
 --------------------------------------- removeFragment  ---------------------------------------
@@ -300,17 +284,16 @@ ServerSentEventGenerator.RemoveFragments(
 )
 -}
 data RemoveFragment = RemoveFragment {
-    removeSelector          :: Builder
+    removeSelector          :: Selector
   , removeFragmentOptions   :: FragmentOptions
   , removeOptions           :: Options
   } deriving Show
 
 instance Default RemoveFragment where
   def                       = RemoveFragment {
-    removeSelector          = bug (RemoveFragmentSelectorIsMissing "")
+      removeSelector        = bug RemoveFragmentSelectorIsMissing
     , removeFragmentOptions = def
     , removeOptions         = def }
-
 
 -- | convert a RemoveFragment data type to a Builder, ready to be sent down the wire
 -- Note: the removeSelector field is required
@@ -326,12 +309,14 @@ instance Default RemoveFragment where
 removeFragment :: RemoveFragment -> Builder
 removeFragment r = format builders
   where
+    builders :: [Maybe Builder]
     builders =
-      [Just    (withEvent EventRemoveFragments)]
-      <> options (removeOptions r)
-      <> [Just . ((<>) ("data: " <> cSelector <> " ")) $ (removeSelector r)]
-      <> fragmentOptions                           (removeFragmentOptions r)
+      [Just  (withEvent EventRemoveFragments)]
+      <> options                                                 (removeOptions r)
+      <> [withRequired RemoveFragmentSelectorIsMissing cSelector (removeSelector r)]
+      <> fragmentOptions                                         (removeFragmentOptions r)
 --------------------------------------- mergeSignals  ---------------------------------------
+
 {- From the README.MD
 ServerSentEventGenerator.MergeSignals(
     signals: string,
@@ -344,14 +329,14 @@ ServerSentEventGenerator.MergeSignals(
 -}
 data MergeSignals = MergeSignals {
     signalSelector          :: Builder
-  , signalOnlyIfMissing     :: Maybe Bool
+  , signalOnlyIfMissing     :: OnlyIfMissing  
   , signalOptions           :: Options
   } deriving Show
 
 instance Default MergeSignals where
   def                       = MergeSignals {
-    signalSelector          = bug (SignalsSelectorIsMissing "")
-  , signalOnlyIfMissing     = Just cDefaultOnlyIfMissing
+    signalSelector          = def
+  , signalOnlyIfMissing     = def
   , signalOptions           = def }
 
 -- | convert a MergeSignals data type to a Builder, ready to be sent down the wire
@@ -359,7 +344,7 @@ instance Default MergeSignals where
 --
 -- Example
 --
--- >>> mergeSignals def {signalSelector = "{'key': 'value'}",  signalOnlyIfMissing = Just True}
+-- >>> mergeSignals def {signalSelector = "{'key': 'value'}",  signalOnlyIfMissing =  OnlyIfMissing True}
 -- "event: datastar-merge-signals\ndata: signals {'key': 'value'}\ndata: onlyIfMissing true\n\n"
 --
 -- >>> mergeSignals def
@@ -368,15 +353,13 @@ instance Default MergeSignals where
 mergeSignals :: MergeSignals -> Builder
 mergeSignals s = format builders
   where
-    builders =
-      [Just    (withEvent EventMergeSignals)]
-      <> options (signalOptions s)
-      <> [Just . ((<>) ("data: " <> cSignals <> " ")) $ (signalSelector s)]
-      <> withDefaults
-    withDefaults :: [Maybe Builder]
-    withDefaults =
-      [  maybeDefault cOnlyIfMissing    (signalOnlyIfMissing s) ]
-
+    builders :: [Maybe Builder]
+    builders = 
+        (Just    (withEvent EventMergeSignals))
+        : options (signalOptions s)
+        <> [  withRequired SignalsSelectorIsMissing cSignals (signalSelector s)
+            , withDefault  cOnlyIfMissing    (signalOnlyIfMissing s) ]
+      
 --------------------------------------- removeSignals  ---------------------------------------
 {- From the README.MD
 ServerSentEventGenerator.RemoveSignals(
@@ -388,13 +371,13 @@ ServerSentEventGenerator.RemoveSignals(
 )
 -}
 data RemoveSignals = RemoveSignals {
-    removeSignalsPath      :: [Builder]
+    removeSignalsPath      :: SignalsPath
   , removeSignalsOptions   :: Options
   } deriving Show
 
 instance Default RemoveSignals where
   def                       = RemoveSignals {
-    removeSignalsPath        = bug (RemoveSignalsPathIsMissing "")
+    removeSignalsPath        = def
   , removeSignalsOptions     = def }
 
 -- | convert a RemoveSignals data type to a Builder, ready to be sent down the wire
@@ -416,11 +399,9 @@ removeSignals :: RemoveSignals -> Builder
 removeSignals r = format builders
   where
     builders =
-       [Just    (withEvent EventRemoveSignals)]
-       <> options (removeSignalsOptions r)
-       <> if null (removeSignalsPath r)
-             then bug (RemoveSignalsPathIsEmpty "")
-             else mapWithData cPaths (removeSignalsPath r)
+       (Just    (withEvent EventRemoveSignals))
+       : options (removeSignalsOptions r)
+       <> [withRequired RemoveSignalsPathIsEmpty cPaths (removeSignalsPath r) ]
 
 --------------------------------------- Execute Script  ---------------------------------------
 {- From the README.MD
@@ -435,17 +416,17 @@ ServerSentEventGenerator.ExecuteScript(
 )
 -}
 data ExecuteScript = ExecuteScript {
-    executeScriptJS      :: Builder
-  , executeAttributes    :: [Builder]
-  , executeAutoRemove    :: Maybe Bool
+    executeScriptJS      :: Script
+  , executeAttributes    :: Attributes
+  , executeAutoRemove    :: AutoRemove
   , executeScriptOptions :: Options
   } deriving Show
 
 instance Default ExecuteScript where
   def                    = ExecuteScript {
-    executeScriptJS      = bug (ExecuteScriptIsMissing "")
-  , executeAttributes    = [cDefaultAttributes]
-  , executeAutoRemove    = Just cDefaultAutoRemove
+    executeScriptJS      = def
+  , executeAttributes    = def
+  , executeAutoRemove    = def
   , executeScriptOptions = def }
 
 -- | convert a ExecuteScript data type to a Builder, ready to be sent down the wire
@@ -463,13 +444,11 @@ executeScript :: ExecuteScript -> Builder
 executeScript e = format builders
   where
     builders =
-      [Just    (withEvent EventExecuteScript)]
-      <> mapWithData "script" [executeScriptJS e]
-      <> options (executeScriptOptions e)
-      <> if null (executeAttributes e) || buildersMatch (executeAttributes e) [cDefaultAttributes]
-            then mempty else mapWithData cAttributes (executeAttributes e)
-      <> withDefaults
-    withDefaults :: [Maybe Builder]
-    withDefaults =
-      [  maybeDefault cAutoRemove    (executeAutoRemove e) ]
--}
+      (Just    (withEvent EventExecuteScript))
+      : options (executeScriptOptions e)
+      <> [withRequired ExecuteScriptIsMissing cScript (executeScriptJS e)]
+      <> [withDefault cAttributes (executeAttributes e)]
+      <> [withDefault cAutoRemove    (executeAutoRemove e) ]
+
+      
+

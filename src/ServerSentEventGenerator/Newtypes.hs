@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module ServerSentEventGenerator.Newtypes where
 
 import NeatInterpolation
@@ -14,14 +15,14 @@ import Data.ByteString.Builder
 -- newtypeStrings = [
 --    ["SettleDuration"      ,"Int"        , "cDefaultSettleDurationMs"]
 --  , ["UseViewTransition"   ,"Bool"       , "cDefaultUseViewTransition"]
---  , ["EventId"             ,"SB"         , "mempty"]
+--  , ["EventId"             ,"Builder"         , "mempty"]
 --  , ["RetryDuration"       ,"Int"        , "cDefaultSseRetryDurationMs"]
---  , ["DataLines"           ,"[SB]"       , "[]"]
---  , ["Selector"            ,"SB"         , "mempty"]
+--  , ["DataLines"           ,"[Builder]"       , "[]"]
+--  , ["Selector"            ,"Builder"         , "mempty"]
 --  , ["OnlyIfMissing"       ,"Bool"       , "cDefaultOnlyIfMissing"]
---  , ["SignalsPath"         ,"[SB]"       , "[]"]
---  , ["Script"              ,"SB"         , "mempty"]
---  , ["Attributes"          ,"[SB]"       , "[SB cDefaultAttributes]"]
+--  , ["SignalsPath"         ,"[Builder]"       , "[]"]
+--  , ["Script"              ,"Builder"         , "mempty"]
+--  , ["Attributes"          ,"[Builder]"       , "[Builder cDefaultAttributes]"]
 --  , ["AutoRemove"          ,"Bool"       , "cDefaultAutoRemove"] ]
  
 -- splitEvery :: Int -> String -> [String]
@@ -44,16 +45,16 @@ import Data.ByteString.Builder
 
 -- literally :: String
 -- literally = T.unpack [untrimming|
--- newtype SB = SB Builder
+-- newtype Builder = Builder Builder
 --   deriving (Monoid, Semigroup, Show)
--- instance Default SB
---   where def = SB mempty
+-- instance Default Builder
+--   where def = Builder mempty
 
--- instance Eq SB where
---  SB a == SB b = show a == show b
+-- instance Eq Builder where
+--  Builder a == Builder b = show a == show b
 
--- instance ToBuilder SB where
---   toBuilder (SB x) = x
+-- instance ToBuilder Builder where
+--   toBuilder (Builder x) = x
 
 -- |]
 
@@ -69,17 +70,19 @@ import Data.ByteString.Builder
 --   putStr literally
 --   mapM_ putStr makeNewtypes
 
-newtype SB = SB Builder
-  deriving (Monoid, Semigroup, Show)
-instance Default SB
-  where def = SB mempty
+-- newtype Builder = Builder Builder
+--   deriving (Monoid, Semigroup, Show)
+-- instance Default Builder
+--   where def = Builder mempty
 
-instance Eq SB where
- SB a == SB b = show a == show b
+instance Eq Builder where
+  a ==  b = show a == show b
 
-instance ToBuilder SB where
-  toBuilder (SB x) = x
+-- instance ToBuilder Builder where
+--   toBuilder = id
 
+instance Default Builder where
+  def = mempty
 
 newtype SettleDuration = SettleDuration Int
   deriving (Eq, Show, ToBuilder)
@@ -91,7 +94,7 @@ newtype UseViewTransition = UseViewTransition Bool
 instance Default UseViewTransition
   where def = UseViewTransition cDefaultUseViewTransition
 
-newtype EventId = EventId SB
+newtype EventId = EventId Builder
   deriving (Eq, Show, ToBuilder)
 instance Default EventId
   where def = EventId mempty
@@ -101,12 +104,12 @@ newtype RetryDuration = RetryDuration Int
 instance Default RetryDuration
   where def = RetryDuration cDefaultSseRetryDurationMs
 
-newtype DataLines = DataLines [SB]
+newtype DataLines = DataLines [Builder]
   deriving (Eq, Show, ToBuilder)
 instance Default DataLines
   where def = DataLines []
 
-newtype Selector = Selector SB
+newtype Selector = Selector Builder
   deriving (Eq, Show, ToBuilder)
 instance Default Selector
   where def = Selector mempty
@@ -116,20 +119,20 @@ newtype OnlyIfMissing = OnlyIfMissing Bool
 instance Default OnlyIfMissing
   where def = OnlyIfMissing cDefaultOnlyIfMissing
 
-newtype SignalsPath = SignalsPath [SB]
+newtype SignalsPath = SignalsPath [Builder]
   deriving (Eq, Show, ToBuilder)
 instance Default SignalsPath
   where def = SignalsPath []
 
-newtype Script = Script SB
+newtype Script = Script Builder
   deriving (Eq, Show, ToBuilder)
 instance Default Script
   where def = Script mempty
 
-newtype Attributes = Attributes [SB]
+newtype Attributes = Attributes [Builder]
   deriving (Eq, Show, ToBuilder)
 instance Default Attributes
-  where def = Attributes [SB cDefaultAttributes]
+  where def = Attributes [cDefaultAttributes]
 
 newtype AutoRemove = AutoRemove Bool
   deriving (Eq, Show, ToBuilder)
