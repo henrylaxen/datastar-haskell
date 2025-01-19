@@ -59,3 +59,6 @@ instance ToBuilder Bool where
   toBuilder False = "false"
   toBuilder True  = "true"
 
+class DsCommand a where
+  dsCommand :: a -> Builder
+  

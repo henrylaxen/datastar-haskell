@@ -23,7 +23,6 @@ cDefaultFragmentsUseViewTransitions                                    :: Bool
 cDefaultOnlyIfMissing                                                  :: Bool
 cDefaultAutoRemove                                                     :: Bool
 cDefaultUseViewTransition                                              :: Bool
-
 cDATASTAR                           = "datastar"
 cDATASTAR_EVENT                     = "datastar-event"
 cDATASTAR_REQUEST                   = "datastar-request"
@@ -53,7 +52,7 @@ cRemoveFragments                    = "datastar-remove-fragments"
 cRemoveSignals                      = "datastar-remove-signals"
 cExecuteScript                      = "datastar-execute-script"
 cSelector                           = "selector"
-cMerge                              = "merge"
+cMerge                              = "mergeMode"
 cSettleDuration                     = "settleDuration"
 cFragments                          = "fragments"
 cUseViewTransition                  = "useViewTransition"
@@ -66,3 +65,7 @@ cEventId                            = "id"
 cRetryDuration                      = "retry"
 cAutoRemove                         = "autoRemove"
  
+-- DATASTAR_KEY = "datastar"
+-- VERSION                   = "1.0.0-beta.1"
+-- VERSION_CLIENT_BYTE_SIZE     = 36235
+-- VERSION_CLIENT_BYTE_SIZE_GZIP = 13244
