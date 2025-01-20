@@ -1,16 +1,16 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ServerSentEventGenerator.Class where
 
-import Debug.Trace
-import Data.ByteString.Builder
-import Data.Functor.Identity ( Identity(..) )
+-- import Debug.Trace
 import Data.Text ( Text )
 import Data.ByteString.Lazy.UTF8
-import System.IO
-import Data.Default
-
-
+-- import System.IO
 import qualified Data.Text.Encoding as T ( encodeUtf8 )
+import Data.Default
+import Data.ByteString.Builder
+import Data.Functor.Identity ( Identity(..) )
+
+
 
 class Monad m => HttpVersion m where
   -- | Are we running Http Version 1.1? Needed to send out the correct headers
@@ -19,6 +19,48 @@ class Monad m => HttpVersion m where
 
 instance HttpVersion Identity  where
   isHttpVersion1_1 = return True
+
+instance Eq Builder where
+  a == b = show a == show b
+
+instance Default Builder where
+  def = mempty
+
+class ToBuilder a where
+  -- | Abstract function to allow you to use types other than Builder
+  --   to do stuff. Better if you just stick with Builder.
+  toBuilder :: a -> Builder
+
+instance ToBuilder Builder where
+  toBuilder = id
+
+instance ToBuilder ByteString where
+  toBuilder = lazyByteString
+
+instance ToBuilder Text where
+  toBuilder = byteString . T.encodeUtf8
+
+instance ToBuilder Char where
+  toBuilder = Data.ByteString.Builder.char8
+
+instance ToBuilder Int where
+  toBuilder =  intDec
+
+instance ToBuilder a => ToBuilder [a] where
+  toBuilder =  mconcat . map toBuilder
+
+instance ToBuilder Bool where
+  toBuilder False = "false"
+  toBuilder True  = "true"
+
+
+
+
+{-
+
+
+
+
 
 class Monad m => Sender m where
   -- | Abstract function to do the actual IO.  Again dependent
@@ -65,12 +107,5 @@ instance ToBuilder Bool where
 class DsCommand a where
   dsCommand :: a -> Builder
   
-instance Eq Builder where
- a == b = show a == show b
 
-instance Default Builder where
-  def = mempty
-
-class ToBuilderList a where
-  toBuilderList :: a -> [Builder]
-
+-}
