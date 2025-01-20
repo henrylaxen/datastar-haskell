@@ -2,29 +2,37 @@ module ServerSentEventGenerator.Internal where
 
 import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Constants
+import ServerSentEventGenerator.Types
 import Data.ByteString.Builder
 import Data.Default ( Default(..) )
 import Data.Maybe ( catMaybes )
 -- import Control.Exception
 
 
-withDefault ::(Eq a, ToBuilder a) => Builder -> a -> a -> Maybe Builder
-withDefault prefix d value = if value == d
+xwithDefault ::(Eq a, ToBuilder a) => Builder -> a -> a -> Maybe Builder
+xwithDefault prefix d value = if value == d
   then Nothing
-  else Just ((toBuilder prefix) <> ((": ") :: Builder)  <> toBuilder value <> "\n")
+  else withPrefix prefix value
 
--- withColon :: (Semigroup a, Data.String.IsString a) => a -> a
-withColon :: (ToBuilder a) => a -> Builder
-withColon x = toBuilder x <> ": "
+withDefault :: (Eq a, ToBuilder a) => DatastarEventType -> a -> a -> Maybe Builder
+withDefault datastarEventType d value = if value == d
+  then Nothing
+  else Just $ toBuilder datastarEventType <> " " <>  toBuilder value
 
-withJust :: (ToBuilder a) => a -> Maybe Builder
-withJust x = Just  (toBuilder x <> "\n")
+-- -- withColon :: (Semigroup a, Data.String.IsString a) => a -> a
+-- withColon :: (ToBuilder a) => a -> Builder
+-- withColon x = toBuilder x <> ": "
+
+-- withJust :: (ToBuilder a) => a -> Maybe Builder
+-- withJust x = Just  (toBuilder x <> "\n")
 
 withData :: ToBuilder a => a -> Maybe Builder
 withData = withPrefix cData
 
-withEvent :: ToBuilder a => a -> Maybe Builder
-withEvent = withPrefix cEvent
+withEvent :: ToBuilder a => EventType -> a -> Maybe Builder
+withEvent e a = Just ((toBuilder e) <> toBuilder a <> "\n")
+
+-- withOptionalEvent :: (ToBuilder a, ToBuilder b) -> 
 
 withPrefix :: (ToBuilder a, ToBuilder b) => a -> b -> Maybe Builder
 withPrefix prefix x = Just $ (toBuilder prefix) <> ": " <> toBuilder x <> "\n"

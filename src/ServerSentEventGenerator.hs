@@ -71,44 +71,77 @@ sseHeaders = do
     sseHeaders2 = "Cache-control: no-cache\nContent-type: text/event-stream\n"
     sseHeaders1_1 = sseHeaders2 <> "Connection: keep-alive\n"
 
-
 -- | All server sent events can contain and Event Id and a Retry Duration as an option
 --   This works, because of the options in opt are equal to their defaults, they will
 --   later be removed from the output
 
--- options ::  Options -> [Maybe Builder]
--- options opt =
---   [ withDefault (withColon cEventId)        (eventId opt)
---   , withDefault (withColon cRetryDuration)  (toBuilder (retryDuration opt)) ]
-
-
-send :: ToBuilder a => EventType -> [a] -> Options -> [Builder]
-send eventType dataLines options = catMaybes (e:i:r:d)
+send :: ToBuilder a => DatastarEventType -> [a] -> Options -> [Builder]
+send datastarEventType dataLines options = (catMaybes (a:b:c:d)) <> ["\n"]
   where
-    e = withEvent (toBuilder eventType)
+    a = withEvent Eevent datastarEventType
+    b = withDefault cEventId mempty (eventId options)
+    c = withDefault cRetryDuration cDefaultSseRetryDurationMs (retryDuration options)
     d = map withData dataLines
-    i = withDefault cEventId mempty (eventId options)
-    r = withDefault cRetryDuration cDefaultSseRetryDurationMs (retryDuration options)
 
 t1 = sp (send MergeFragments sampleDataLines (Options "abc123" 100))
 t2 = sp (send MergeFragments sampleDataLines def)
 
-data SSE = SSE {
-    sEventType     :: EventType
-  , sDataLines     :: [Builder]
-  , sOptions       :: Options
-  } deriving Show
+-- sendSSE :: SSE -> [Builder]
+-- sendSSE (SSE a b c) = send a b c
 
-{- From the README.MD
-ServerSentEventGenerator.send(
-    eventType: EventType,
-    dataLines: string[],
-    options?: {
-        eventId?: string,
-        retryDuration?: durationInMilliseconds
-    }) -}
+-- data MergeFragments = MergeFragments {
+--      mergeData              :: DataLines
+--    , mergeSelector          :: Selector
+--    , mergeMode              :: MergeMode  -- > Morph is default
+--    , mergeFragmentOptions   :: FragmentOptions
+--    , mergeOptions           :: Options
+--    } deriving Show
+
+-- instance Default MergeFragments where
+--   def                        = MergeFragments {
+--        mergeData              = def
+--     ,  mergeSelector          = def
+--     ,  mergeMode              = def
+--     ,  mergeFragmentOptions   = def
+--     ,  mergeOptions           = def }
+
+-- data FragmentOptions = FragmentOptions {
+--     settleDuration    :: SettleDuration
+--   , useViewTransition :: UseViewTransition
+--   } deriving (Show)
+
+-- -- | the MergeFragments and RemoveFragment data types share these options
+
+-- instance Default FragmentOptions where
+--   def = FragmentOptions {
+--     settleDuration     = def
+--   , useViewTransition  = def
+--   }
 
 
--- | All server sent events can contain and Event Id and a Retry Duration as an option
---   This works, because of the options in opt are equal to their defaults, they will
---   later be removed from the output
+mergeFragment fragments mergeMode mergeSelector settleDuration useViewTransition
+  where
+    a = withEvent Edata MergeFragments
+    b = withDefault cDefaultMergeMode
+    c = withDefault cRetryDuration cDefaultSseRetryDurationMs (retryDuration options)
+    d = map withData dataLines
+    
+
+-- mergeFragment =
+--   where
+--     e = withEvent (toBuilder MergeFragments)
+    
+
+-- mergeFragments :: MergeFragments -> Builder
+-- mergeFragments m = format builders
+--   where
+    
+--     builders =
+--       [ Just (withEvent EventMergeFragments) ]
+--       <> options (mergeOptions m)
+--       <> withDefaults
+--       <> withBuilderList (mergeData  m)
+--     withDefaults =
+--       [  withDefault        (mergeMode m)
+--       ,  withDefault        (mergeSelector m)
+--       ] <> fragmentOptions  (mergeFragmentOptions m)

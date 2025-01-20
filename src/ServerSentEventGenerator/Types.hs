@@ -22,6 +22,9 @@ data SSE = SSE {
   , sOptions       :: Options
   } deriving Show
 
+instance Default SSE where
+  def = SSE def [] def
+
 {- From the README.MD
 ServerSentEventGenerator.send(
     eventType: EventType,
@@ -31,9 +34,23 @@ ServerSentEventGenerator.send(
         retryDuration?: durationInMilliseconds
     }) -}
 
--- | A sum of the possible Datastar specific sse events that can be sent
-
 data EventType =
+    Eevent
+  | Eretry
+  | Eid
+  | Edata
+  deriving Show
+
+instance Default EventType where
+  def = Edata
+instance ToBuilder EventType where
+  toBuilder Eevent = cEvent         <> cSpace
+  toBuilder Eretry = cRetryDuration <> cSpace
+  toBuilder Eid    = cEventId       <> cSpace
+  toBuilder Edata  = cData          <> cSpace
+
+-- | A sum of the possible Datastar specific sse events that can be sent
+data DatastarEventType =
     MergeFragments
   | RemoveFragments
   | MergeSignals
@@ -41,10 +58,10 @@ data EventType =
   | ExecuteScript
   deriving (Eq, Show)
 
-instance Default EventType
+instance Default DatastarEventType
   where def = MergeFragments
 
-instance ToBuilder EventType where
+instance ToBuilder DatastarEventType where
   toBuilder MergeFragments   = cMergeFragments
   toBuilder RemoveFragments  = cRemoveFragments
   toBuilder MergeSignals     = cMergeSignals

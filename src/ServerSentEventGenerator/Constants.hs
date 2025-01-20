@@ -69,7 +69,9 @@ cData :: Builder
 cData                               =  "data"
 cEvent :: Builder
 cEvent                              =  "event"
- 
+cSpace :: Builder
+cSpace                              =  ": "
+  
 -- DATASTAR_KEY =  "datastar"
 -- VERSION                   =  "1.0.0-beta.1"
 -- VERSION_CLIENT_BYTE_SIZE     =  36235
