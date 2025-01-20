@@ -1,29 +1,29 @@
 module ServerSentEventGenerator (
 
-    HttpVersion(..)
-  , Sender(..)
-  , ToBuilder(..)
-  , Options(..)
-  , FragmentOptions(..)
-  , EventType(..)
-  , MergeMode(..)
-  , Send(..)
-  , MergeFragments(..)
-  , RemoveFragment(..)
-  , MergeSignals(..)
-  , RemoveSignals(..)
-  , ExecuteScript(..)
-  , sseHeaders
-  , sendPure
-  , sendFragments
-  , mergeFragments
-  , removeFragment
-  , mergeSignals
-  , removeSignals
-  , executeScript
-  , withOptions
-  , sampleDataLines
-  , sp
+--     HttpVersion(..)
+--   , Sender(..)
+--   , ToBuilder(..)
+--   , Options(..)
+--   , FragmentOptions(..)
+--   , EventType(..)
+--   , MergeMode(..)
+--   , Send(..)
+--   , MergeFragments(..)
+--   , RemoveFragment(..)
+--   , MergeSignals(..)
+--   , RemoveSignals(..)
+--   , ExecuteScript(..)
+--   , sseHeaders
+--   , sendPure
+--   , fragments
+--   , mergeFragments
+--   , removeFragment
+--   , mergeSignals
+--   , removeSignals
+--   , executeScript
+--   , withOptions
+--   , sampleDataLines
+--   , sp
   ) where
 
 import ServerSentEventGenerator.Constants
@@ -38,11 +38,14 @@ import ServerSentEventGenerator.Class
 -- >>> import           Data.Maybe
 -- >>> import           Data.Text                 ( Text )
 -- >>> import qualified Data.Text.Encoding        as T
--- >>> sampleDataLines = ["line 1", "line 2"] :: [Builder]
+
+
 sampleDataLines :: DataLines
 sampleDataLines = DataLines ["line 1", "line 2"]
 sp :: Send -> IO ()
 sp = send . sendPure
+
+
 -- | returns the Http header for an SSE depending
 --   on the Http version you are using. Note: you will
 --   have to implement an instance of the HttpVersion class
@@ -189,23 +192,20 @@ instance Default Send where
 --
 -- Example
 --
--- >>> sendPure $ Send EventMergeFragments sampleDataLines (def {eventId = Just "abc123"})
--- "event: datastar-merge-fragments\nid: abc123\ndata: line 1\ndata: line 2\n\n"
---
--- >>> sp (def {sendDataLines = DataLines sampleDataLines})
--- "event: datastar-merge-fragments\ndata: line 1\ndata: line 2\n\n"
+-- >>> sp $ Send EventMergeFragments sampleDataLines (def {eventId = EventId "abc123"})
+-- event: datastar-merge-fragments
+-- id: abc123
+-- data: line 1
+-- data: line 2
+-- <BLANKLINE>
+-- >>> sp (def {sDataLines = sampleDataLines})
+-- event: datastar-merge-fragments
+-- data: line 1
+-- data: line 2
+-- <BLANKLINE>
+ 
 
 --------------------------------------- send  ---------------------------------------
-
--- newtype DataLines = DataLines [Builder]
--- dsCommand _ = cData <> ": "
--- withDefault ::(DsCommand a, Default a, Eq a, ToBuilder a) => a -> Maybe Builder
--- withDefault value = if value == def
---   then Nothing
---   else Just (dsCommand value <> ": " <> toBuilder value)
-
-withBuilderList :: (DsCommand a, ToBuilderList a) =>  a -> [Maybe Builder]
-withBuilderList s = map (Just . ((dsCommand s) <>)) (toBuilderList s)
 
 sendPure :: Send -> Builder
 sendPure s = format builders
@@ -214,18 +214,24 @@ sendPure s = format builders
       [Just (withEvent (sEventType s))]
       <> options (sOptions s)
       <> withBuilderList (sDataLines s)
-
+      
 -- | A convenience function that takes a list of ByteString/String/Text and
 --   outputs a Builder, assuming the rest of the Send Data Type fields are
 --   the defaults.
 --
 -- Example
 --
--- >>> sendFragments (["l1", "l2"] :: [String])
--- "event: datastar-merge-fragments\ndata: l1\ndata: l2\n\n"
+-- >>> send $ fragments (["l1", "l2"] :: [String])
+-- event: datastar-merge-fragments
+-- data: l1
+-- data: l2
+-- <BLANKLINE>
 --
--- >>> sendFragments (["l1", "l2"] :: [Text])
--- "event: datastar-merge-fragments\ndata: l1\ndata: l2\n\n"
+-- >>> send $ fragments (["l1", "l2"] :: [Text])
+-- event: datastar-merge-fragments
+-- data: l1
+-- data: l2
+-- <BLANKLINE>
 
 {- From the README.MD
 
@@ -253,8 +259,8 @@ ServerSentEventGenerator.MergeFragments(
 
 -}
 --------------------------------------- sendFragments  ---------------------------------------
-sendFragments :: ToBuilder a => [a] -> Builder
-sendFragments s = sendPure def {sDataLines =  DataLines  (map toBuilder s)}
+fragments :: ToBuilder a => [a] -> Builder
+fragments s = sendPure def {sDataLines =  DataLines  (map toBuilder s)}
 
 --------------------------------------- mergeFragments  ---------------------------------------
 data MergeFragments = MergeFragments {
@@ -278,7 +284,7 @@ instance Default MergeFragments where
 -- Example
 --
 -- >>> :{
--- mergeFragments def {    mergeMode = Just UpsertAttributes
+-- mergeFragments def {    mergeMode = UpsertAttributes
 --                       , mergeData = sampleDataLines
 --                       , mergeFragmentOptions = FragmentOptions (Just 500) (Just True)
 --                       , mergeSelector = Just "#id"}
@@ -493,3 +499,4 @@ executeScript e = format builders
       <> [withRequired ExecuteScriptIsMissing (executeScriptJS e)]
       <> [withDefault (executeAttributes e)]
       <> [withDefault (executeAutoRemove e) ]
+

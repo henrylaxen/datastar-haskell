@@ -61,6 +61,9 @@ withDefault value = if value == def
   then Nothing
   else Just (dsCommand value <> toBuilder value)
 
+withBuilderList :: (DsCommand a, ToBuilderList a) =>  a -> [Maybe Builder]
+withBuilderList s = map (Just . ((dsCommand s) <>)) (toBuilderList s)
+
 data ServerSentEventGeneratorExceptions =
    RemoveFragmentSelectorIsMissing 
  | SignalsSelectorIsMissing        
