@@ -291,13 +291,11 @@ instance Default MergeFragments where
 -- :}
 -- "event: datastar-merge-fragments\ndata: merge upsertAttributes\ndata: selector #id\ndata: settleDuration 500\ndata: useViewTransition true\ndata: line 1\ndata: line 2\n\n"
 --
--- >>> sendPure (def {sendDataLines = sampleDataLines})
--- "event: datastar-merge-fragments\ndata: line 1\ndata: line 2\n\n"
-
--- newtype DataLines = DataLines [Builder]
---   dsCommand _ = cData <> ": "
--- mergeData              :: DataLines
--- want DataLines -> [Maybe Builder]
+-- >>> sp (def {sDataLines = sampleDataLines})
+-- event: datastar-merge-fragments
+-- data: line 1
+-- data: line 2
+-- <BLANKLINE>
 
 mergeFragments :: MergeFragments -> Builder
 mergeFragments m = format builders
@@ -344,7 +342,7 @@ instance Default RemoveFragment where
 --
 -- Example
 --
--- >>> removeFragment def {removeSelector = "id1", removeFragmentOptions = def {settleDuration = Just 500}}
+-- >>> sp $ removeFragment def {removeSelector = Selector "id1", removeFragmentOptions = def {settleDuration = SettleDuration 500}}
 -- "event: datastar-remove-fragments\ndata: selector id1\ndata: settleDuration 500\ndata: useViewTransition false\n\n"
 --
 -- >>> removeFragment def
