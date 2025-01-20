@@ -59,7 +59,7 @@ withRequired exception value = if toBuilder value == mempty
 withDefault ::(DsCommand a, Default a, Eq a, ToBuilder a) => a -> Maybe Builder
 withDefault value = if value == def
   then Nothing
-  else Just (dsCommand value <> ": " <> toBuilder value)
+  else Just (dsCommand value <> toBuilder value)
 
 data ServerSentEventGeneratorExceptions =
    RemoveFragmentSelectorIsMissing 

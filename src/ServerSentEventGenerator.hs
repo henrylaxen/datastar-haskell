@@ -14,13 +14,16 @@ module ServerSentEventGenerator (
   , RemoveSignals(..)
   , ExecuteScript(..)
   , sseHeaders
---   , sendPure
+  , sendPure
   , sendFragments
   , mergeFragments
   , removeFragment
   , mergeSignals
   , removeSignals
   , executeScript
+  , withOptions
+  , sampleDataLines
+  , sp
   ) where
 
 import ServerSentEventGenerator.Constants
@@ -36,7 +39,10 @@ import ServerSentEventGenerator.Class
 -- >>> import           Data.Text                 ( Text )
 -- >>> import qualified Data.Text.Encoding        as T
 -- >>> sampleDataLines = ["line 1", "line 2"] :: [Builder]
-
+sampleDataLines :: DataLines
+sampleDataLines = DataLines ["line 1", "line 2"]
+sp :: Send -> IO ()
+sp = send . sendPure
 -- | returns the Http header for an SSE depending
 --   on the Http version you are using. Note: you will
 --   have to implement an instance of the HttpVersion class
@@ -85,11 +91,8 @@ instance DsCommand Options where
       b = if retryDuration opt == def then mempty else "retry: " <>  toBuilder (retryDuration opt)  <> "\n"
     in mconcat [a,b]
 
--- withOptions :: Builder -> Int -> Options
--- withOptions x y =
---   let
---     opt = Options (EventId x) (RetryDuration y)
---     mbId = if x == def :: EventId then
+withOptions :: Builder -> Int -> Options
+withOptions x y = Options (EventId x) (RetryDuration y)
 
 data FragmentOptions = FragmentOptions {
     settleDuration    :: SettleDuration
@@ -168,9 +171,9 @@ ServerSentEventGenerator.send(
     }) -}
 
 data Send = Send {
-    sendEventType     :: EventType
-  , sendDataLines     :: DataLines
-  , sendOptions       :: Options
+    sEventType     :: EventType
+  , sDataLines     :: DataLines
+  , sOptions       :: Options
   } deriving Show
 
 
@@ -189,17 +192,28 @@ instance Default Send where
 -- >>> sendPure $ Send EventMergeFragments sampleDataLines (def {eventId = Just "abc123"})
 -- "event: datastar-merge-fragments\nid: abc123\ndata: line 1\ndata: line 2\n\n"
 --
--- >>> sendPure (def {sendDataLines = sampleDataLines})
+-- >>> sp (def {sendDataLines = DataLines sampleDataLines})
 -- "event: datastar-merge-fragments\ndata: line 1\ndata: line 2\n\n"
 
 --------------------------------------- send  ---------------------------------------
+
+-- newtype DataLines = DataLines [Builder]
+-- dsCommand _ = cData <> ": "
+-- withDefault ::(DsCommand a, Default a, Eq a, ToBuilder a) => a -> Maybe Builder
+-- withDefault value = if value == def
+--   then Nothing
+--   else Just (dsCommand value <> ": " <> toBuilder value)
+
+withBuilderList :: (DsCommand a, ToBuilderList a) =>  a -> [Maybe Builder]
+withBuilderList s = map (Just . ((dsCommand s) <>)) (toBuilderList s)
+
 sendPure :: Send -> Builder
 sendPure s = format builders
   where
     builders =
-      [Just (withEvent (sendEventType s))]
-      <> options (sendOptions s)
---      <> map withDefault (sendDataLines s)
+      [Just (withEvent (sEventType s))]
+      <> options (sOptions s)
+      <> withBuilderList (sDataLines s)
 
 -- | A convenience function that takes a list of ByteString/String/Text and
 --   outputs a Builder, assuming the rest of the Send Data Type fields are
@@ -240,7 +254,7 @@ ServerSentEventGenerator.MergeFragments(
 -}
 --------------------------------------- sendFragments  ---------------------------------------
 sendFragments :: ToBuilder a => [a] -> Builder
-sendFragments s = sendPure def {sendDataLines =  DataLines  (map toBuilder s)}
+sendFragments s = sendPure def {sDataLines =  DataLines  (map toBuilder s)}
 
 --------------------------------------- mergeFragments  ---------------------------------------
 data MergeFragments = MergeFragments {
@@ -274,17 +288,20 @@ instance Default MergeFragments where
 -- >>> sendPure (def {sendDataLines = sampleDataLines})
 -- "event: datastar-merge-fragments\ndata: line 1\ndata: line 2\n\n"
 
-unDataLines :: DataLines -> [Builder]
-unDataLines (DataLines x) = x
+-- newtype DataLines = DataLines [Builder]
+--   dsCommand _ = cData <> ": "
+-- mergeData              :: DataLines
+-- want DataLines -> [Maybe Builder]
 
 mergeFragments :: MergeFragments -> Builder
 mergeFragments m = format builders
   where
+    
     builders =
       [ Just (withEvent EventMergeFragments) ]
       <> options (mergeOptions m)
       <> withDefaults
-      <> map withDefault (unDataLines (mergeData  m))
+      <> withBuilderList (mergeData  m)
     withDefaults =
       [  withDefault        (mergeMode m)
       ,  withDefault        (mergeSelector m)
@@ -417,13 +434,18 @@ instance Default RemoveSignals where
 -- >>> removeSignals (RemoveSignals [] (Options Nothing (Just 10)))
 -- "*** Exception: RemoveSignalsPathIsEmpty "the path cannot be an empty list"
 
+-- newtype SignalsPath = SignalsPath [Builder]
+--   dsCommand _ = cData <> ": " <> cPaths
+-- withBuilderList :: DataLines -> [Maybe Builder]
+-- withBuilderList s = map (Just . ((dsCommand s) <>)) (unDataLines s)
+
 removeSignals :: RemoveSignals -> Builder
 removeSignals r = format builders
   where
     builders =
        (Just    (withEvent EventRemoveSignals))
        : options (removeSignalsOptions r)
-       <> [withRequired RemoveSignalsPathIsEmpty (removeSignalsPath r) ]
+       <> withBuilderList (removeSignalsPath r)
 
 --------------------------------------- Execute Script  ---------------------------------------
 {- From the README.MD

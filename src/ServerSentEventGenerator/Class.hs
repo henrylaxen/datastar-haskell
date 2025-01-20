@@ -71,3 +71,6 @@ instance Eq Builder where
 instance Default Builder where
   def = mempty
 
+class ToBuilderList a where
+  toBuilderList :: a -> [Builder]
+

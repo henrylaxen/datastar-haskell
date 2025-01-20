@@ -9,6 +9,8 @@ import qualified Data.Text as T
 
 -- ["The Symbol Name", "It's Inner type", "Name of default", "Name of prefix"]
 
+-- for DataLines and SignalsPath I need an unX function
+
 newtypeStrings :: [[String]]
 newtypeStrings = [
     ["SettleDuration","Int","cDefaultSettleDurationMs",""]
@@ -30,7 +32,7 @@ template [a,b,c,d] = result
   where
     defString = if T.null c then "cDefault" <> a else c
     result = T.unpack [untrimming|
-newtype $a = $a $b
+newtype $a = $a { un$a :: $b }
   deriving (Eq, Show, ToBuilder)
 instance Default $a
   where def = $a $defString
@@ -48,6 +50,12 @@ import Data.Default
 import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Constants
 import Data.ByteString.Builder
+
+instance ToBuilderList DataLines where
+  toBuilderList = unDataLines
+
+instance ToBuilderList SignalsPath where
+  toBuilderList = unSignalsPath
 |]
 
 fixup :: (Eq a, Data.String.IsString a, Semigroup a) => [a] -> [a]
