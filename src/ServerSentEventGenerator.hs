@@ -45,7 +45,6 @@ import System.IO
 -- >>> import           Data.Text                 ( Text )
 -- >>> import qualified Data.Text.Encoding        as T
 
-sp = hPutBuilder stdout 
 
 sampleDataLines :: [Builder]
 sampleDataLines = ["line 1", "line 2"]
@@ -73,16 +72,17 @@ sseHeaders = do
 
 
 -- | All server sent events can contain and Event Id and a Retry Duration as an option
---   This works, because of the options in opt are equal to their defaults, they will
---   later be removed from the output
+--   This works, because if the options are equal to their defaults, they will
+--   be removed from the output
 
--- send :: ToBuilder a => DatastarEventType -> [a] -> Options -> [Builder]
--- send datastarEventType dataLines options = (catMaybes (a:b:c:d)) <> ["\n"]
---   where
---     a = withEvent Eevent datastarEventType
---     b = withDefault cEventId mempty (eventId options)
---     c = withDefault cRetryDuration cDefaultSseRetryDurationMs (retryDuration options)
---     d = map withData dataLines
+sendPure :: (ToBuilder a) => EventType -> [a] -> Options -> Builder
+sendPure eventType dataLines options = buildLines (a:b:c)
+  where
+    withSSEdefault value defaultValue field = if value ==  defaultValue then mempty
+      else field <> ": " <> toBuilder value
+    a = "event: " <> toBuilder eventType
+    b = toBuilder options
+    c = map (\x -> cData <> ": " <> toBuilder x) dataLines
 
 -- t1 = sp (send MergeFragments sampleDataLines (Options "abc123" 100))
 -- t2 = sp (send MergeFragments sampleDataLines def)
@@ -147,7 +147,15 @@ sseHeaders = do
 --       ,  withDefault        (mergeSelector m)
 --       ] <> fragmentOptions  (mergeFragmentOptions m)
 
--- merge :: Builder -> MergeMode -> FragmentOptions -> Options -> Builder
--- merge selector mode fragOptions options =
+merge :: (ToBuilder a,ToBuilder b) => [a] -> b -> MergeMode -> FragmentOptions -> Options -> Builder
+merge fragments selector mode fragOptions options = buildLines (a:b:c:d:e:f)
+  where
+    a = "event: " <> toBuilder MergeFragments
+    b = toBuilder options
+    c = withDefault cSelector cDefaultSelector (toBuilder selector)
+    d = withDefault cMerge cDefaultMergeMode (toBuilder mode)
+    e = toBuilder fragOptions
+    f = withFragments fragments
+
 
 

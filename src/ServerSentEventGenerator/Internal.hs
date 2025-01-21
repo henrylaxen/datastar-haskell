@@ -2,12 +2,25 @@ module ServerSentEventGenerator.Internal where
 
 import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Constants
-import ServerSentEventGenerator.Types
 import Data.ByteString.Builder
-import Data.Default ( Default(..) )
-import Data.Maybe ( catMaybes )
-import Control.Exception
+import System.IO
 
+sp :: Builder -> IO ()
+sp = hPutBuilder stdout
+
+buildLines :: [Builder] -> Builder
+buildLines builders = (go mempty builders)
+  where
+    go acc [] = acc
+    go acc (b:bs) = if b == mempty then go acc bs else b <> "\n" <> go acc bs
+
+withDefault :: (Eq a, ToBuilder a, ToBuilder b) => b -> a -> a -> Builder
+withDefault dStarEvent defaultValue value = if value == defaultValue
+  then mempty
+  else "data: " <> toBuilder dStarEvent <> " " <>  toBuilder value
+
+withFragments :: (ToBuilder a) => [a] -> [Builder]
+withFragments =  map (\x -> cData <> ": " <> cFragments <> " " <> toBuilder x)
 
 -- xwithDefault ::(Eq a, ToBuilder a) => Builder -> a -> a -> Maybe Builder
 -- xwithDefault prefix d value = if value == d
