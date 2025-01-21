@@ -4,14 +4,28 @@ import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Constants
 import Data.ByteString.Builder
 import System.IO
+import Control.Concurrent.MVar
 
-sp :: Builder -> IO ()
-sp = hPutBuilder stdout
+sp :: [Builder] -> IO ()
+sp bs = do
+  m <- newMVar ()
+  mapM_ (print1 m) bs
+  where
+    print1 m b = do
+      takeMVar m
+      hPutBuilder stdout "\n----\n"
+      hPutBuilder stdout b
+      putMVar m ()
 
 buildLines :: [Builder] -> Builder
 buildLines builders = (go mempty builders)
   where
-    go acc [] = acc
+    go acc []     = acc
+    go acc [x]    = x <> acc
+    go acc [x,y]  = case [x,y] of
+      ["",z] -> z <> acc
+      [z,""] -> z <> acc
+      [u,v] -> u <> "\n" <> v <> acc
     go acc (b:bs) = if b == mempty then go acc bs else b <> "\n" <> go acc bs
 
 withDefault :: (Eq a, ToBuilder a, ToBuilder b) => b -> a -> a -> Builder

@@ -147,15 +147,25 @@ sendPure eventType dataLines options = buildLines (a:b:c)
 --       ,  withDefault        (mergeSelector m)
 --       ] <> fragmentOptions  (mergeFragmentOptions m)
 
-merge :: (ToBuilder a,ToBuilder b) => [a] -> b -> MergeMode -> FragmentOptions -> Options -> Builder
+-- withDefault dStarEvent defaultValue value 
+
+merge :: (ToBuilder a) => [a] -> Selector -> MergeMode -> FragmentOptions -> Options -> Builder
 merge fragments selector mode fragOptions options = buildLines (a:b:c:d:e:f)
   where
     a = "event: " <> toBuilder MergeFragments
     b = toBuilder options
-    c = withDefault cSelector cDefaultSelector (toBuilder selector)
+    c = withDefault cSelector def selector
     d = withDefault cMerge cDefaultMergeMode (toBuilder mode)
     e = toBuilder fragOptions
     f = withFragments fragments
+
+t1 = merge sampleDataLines def def def def
+t2 = merge sampleDataLines (SEL "#id") def def def
+t3 = merge sampleDataLines (SEL "#id") Inner def def
+t4 = merge sampleDataLines (SEL "#id") Inner (FO 1 False) def
+t5 = merge sampleDataLines (SEL "#id") Inner (FO 1 True) (O "abc123" 10)
+t6 = sp [t1,t2,t3,t4,t5]
+
 
 
 

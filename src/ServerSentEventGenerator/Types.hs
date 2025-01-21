@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module ServerSentEventGenerator.Types where
 
 import ServerSentEventGenerator.Internal
@@ -7,13 +8,13 @@ import Data.ByteString.Builder --  ( Builder )
 import Data.Default ( Default(..) )
 import Control.Exception
 
-data Options = Options {
+data Options = O {
     eventId       :: Builder
   , retryDuration :: Int
   } deriving (Show)
 
 instance Default Options where
-  def = Options {
+  def = O {
     eventId = def
   , retryDuration = cDefaultSseRetryDurationMs
   }
@@ -71,6 +72,15 @@ ServerSentEventGenerator.send(
 --   toBuilder Edata  = cData          <> cSpace
 
 -- | A sum of the possible Datastar specific sse events that can be sent
+
+newtype Selector = SEL Builder
+  deriving (Show, Semigroup, Monoid, Eq)
+
+instance Default Selector where
+  def = SEL cDefaultSelector
+
+instance ToBuilder Selector where
+  toBuilder (SEL a) = a
     
 data EventType =
     MergeFragments
@@ -114,7 +124,7 @@ instance ToBuilder MergeMode where
    toBuilder After            = cAfter
    toBuilder UpsertAttributes = cUpsertAttributes
 
-data FragmentOptions = FragmentOptions {
+data FragmentOptions = FO {
     settleDuration    :: Int
   , useViewTransition :: Bool
   } deriving (Show)
@@ -122,13 +132,13 @@ data FragmentOptions = FragmentOptions {
 -- | the MergeFragments and RemoveFragment data types share these options
 
 instance Default FragmentOptions where
-  def = FragmentOptions {
+  def = FO {
     settleDuration     = cDefaultSettleDurationMs
   , useViewTransition  = cDefaultUseViewTransition
   }
 
 instance ToBuilder FragmentOptions where
-  toBuilder (FragmentOptions a b) = buildLines [
+  toBuilder (FO a b) = buildLines [
       withDefault cSettleDuration    cDefaultSettleDurationMs a
     , withDefault cUseViewTransition cDefaultUseViewTransition  b
     ]
