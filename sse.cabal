@@ -43,6 +43,7 @@ common default-extensions
       , TemplateHaskell
       , TypeSynonymInstances
       , GeneralizedNewtypeDeriving
+      , ScopedTypeVariables
 
 library
     import:           deps,warnings,default-extensions

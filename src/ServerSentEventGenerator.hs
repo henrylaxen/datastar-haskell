@@ -34,7 +34,7 @@ import Data.ByteString.Builder --  ( Builder )
 import Data.Default ( Default(..) )
 import Data.Maybe
 import System.IO
-
+import Control.Exception
 
 -- import ServerSentEventGenerator.Internal
 -- import ServerSentEventGenerator.Newtypes
@@ -45,6 +45,7 @@ import System.IO
 -- >>> import           Data.Text                 ( Text )
 -- >>> import qualified Data.Text.Encoding        as T
 
+-- Bug in sse.py, the event_id is an Int
 
 sampleDataLines :: [Builder]
 sampleDataLines = ["line 1", "line 2"]
@@ -149,22 +150,42 @@ sendPure eventType dataLines options = buildLines (a:b:c)
 
 -- withDefault dStarEvent defaultValue value 
 
-merge :: (ToBuilder a) => [a] -> Selector -> MergeMode -> FragmentOptions -> Options -> Builder
-merge fragments selector mode fragOptions options = buildLines (a:b:c:d:e:f)
+mergeFragments :: (ToBuilder a) => [a] -> Selector -> MergeMode -> FragmentOptions -> Options -> Builder
+mergeFragments fragments selector mode fragOptions options = buildLines (a:b:c:d:e:f)
   where
     a = "event: " <> toBuilder MergeFragments
     b = toBuilder options
-    c = withDefault cSelector def selector
+    c = toBuilder selector
     d = withDefault cMerge cDefaultMergeMode (toBuilder mode)
     e = toBuilder fragOptions
     f = withFragments fragments
 
-t1 = merge sampleDataLines def def def def
-t2 = merge sampleDataLines (SEL "#id") def def def
-t3 = merge sampleDataLines (SEL "#id") Inner def def
-t4 = merge sampleDataLines (SEL "#id") Inner (FO 1 False) def
-t5 = merge sampleDataLines (SEL "#id") Inner (FO 1 True) (O "abc123" 10)
-t6 = sp [t1,t2,t3,t4,t5]
+-- t1 = mergeFragments sampleDataLines def def def def
+-- t2 = mergeFragments sampleDataLines (SEL "#id") def def def
+-- t3 = mergeFragments sampleDataLines (SEL "#id") Inner def def
+-- t4 = mergeFragments sampleDataLines (SEL "#id") Inner (FO 1 False) def
+-- t5 = mergeFragments sampleDataLines (SEL "#id") Inner (FO 1 True) (O "abc123" 10)
+-- t6 = sp [t1,t2,t3,t4,t5]
+
+-- Bug in sse.py, the selector is made optional
+
+removeFragments :: Selector -> FragmentOptions -> Options -> Builder
+removeFragments selector fragOptions options = buildLines [a,b,c,d]
+  where
+    a = "event: " <> toBuilder RemoveFragments
+    b = toBuilder options
+    c = if selector == def
+          then bug RemoveFragmentSelectorIsMissing
+          else toBuilder selector
+    d = toBuilder fragOptions
+      
+-- t1 = sp [removeFragments def def def] `catch`
+--         (\(e :: ServerSentEventGeneratorExceptions) -> print e)
+-- t2 = removeFragments (SEL "#id") def def 
+-- t3 = removeFragments (SEL "#id") (FO 1 False) def
+-- t4 = removeFragments (SEL "#id") (FO 1 True) def
+-- t5 = removeFragments (SEL "#id") (FO 1 False) (O "abc123" 10)
+-- t6 = t1 >> sp [t2,t3,t4,t5]
 
 
 

@@ -36,6 +36,9 @@ withDefault dStarEvent defaultValue value = if value == defaultValue
 withFragments :: (ToBuilder a) => [a] -> [Builder]
 withFragments =  map (\x -> cData <> ": " <> cFragments <> " " <> toBuilder x)
 
+
+
+
 -- xwithDefault ::(Eq a, ToBuilder a) => Builder -> a -> a -> Maybe Builder
 -- xwithDefault prefix d value = if value == d
 --   then Nothing

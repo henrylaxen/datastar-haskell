@@ -73,14 +73,14 @@ ServerSentEventGenerator.send(
 
 -- | A sum of the possible Datastar specific sse events that can be sent
 
-newtype Selector = SEL Builder
+newtype Selector = SEL {unSelector :: Builder}
   deriving (Show, Semigroup, Monoid, Eq)
 
 instance Default Selector where
   def = SEL cDefaultSelector
 
 instance ToBuilder Selector where
-  toBuilder (SEL a) = a
+  toBuilder = withDefault cSelector def . unSelector
     
 data EventType =
     MergeFragments
