@@ -1,4 +1,4 @@
-module ServerSentEventGenerator (
+module ServerSentEventGenerator where
 
 --     HttpVersion(..)
 --   , Sender(..)
@@ -24,7 +24,7 @@ module ServerSentEventGenerator (
 --   , withOptions
 --   , sampleDataLines
 --   , sp
-  ) where
+
 
 import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Internal
@@ -45,7 +45,7 @@ import System.IO
 -- >>> import           Data.Text                 ( Text )
 -- >>> import qualified Data.Text.Encoding        as T
 
-sp = hPutBuilder stdout . mconcat
+sp = hPutBuilder stdout 
 
 sampleDataLines :: [Builder]
 sampleDataLines = ["line 1", "line 2"]
@@ -71,20 +71,21 @@ sseHeaders = do
     sseHeaders2 = "Cache-control: no-cache\nContent-type: text/event-stream\n"
     sseHeaders1_1 = sseHeaders2 <> "Connection: keep-alive\n"
 
+
 -- | All server sent events can contain and Event Id and a Retry Duration as an option
 --   This works, because of the options in opt are equal to their defaults, they will
 --   later be removed from the output
 
-send :: ToBuilder a => DatastarEventType -> [a] -> Options -> [Builder]
-send datastarEventType dataLines options = (catMaybes (a:b:c:d)) <> ["\n"]
-  where
-    a = withEvent Eevent datastarEventType
-    b = withDefault cEventId mempty (eventId options)
-    c = withDefault cRetryDuration cDefaultSseRetryDurationMs (retryDuration options)
-    d = map withData dataLines
+-- send :: ToBuilder a => DatastarEventType -> [a] -> Options -> [Builder]
+-- send datastarEventType dataLines options = (catMaybes (a:b:c:d)) <> ["\n"]
+--   where
+--     a = withEvent Eevent datastarEventType
+--     b = withDefault cEventId mempty (eventId options)
+--     c = withDefault cRetryDuration cDefaultSseRetryDurationMs (retryDuration options)
+--     d = map withData dataLines
 
-t1 = sp (send MergeFragments sampleDataLines (Options "abc123" 100))
-t2 = sp (send MergeFragments sampleDataLines def)
+-- t1 = sp (send MergeFragments sampleDataLines (Options "abc123" 100))
+-- t2 = sp (send MergeFragments sampleDataLines def)
 
 -- sendSSE :: SSE -> [Builder]
 -- sendSSE (SSE a b c) = send a b c
@@ -119,12 +120,12 @@ t2 = sp (send MergeFragments sampleDataLines def)
 --   }
 
 
-mergeFragment fragments mergeMode mergeSelector settleDuration useViewTransition
-  where
-    a = withEvent Edata MergeFragments
-    b = withDefault cDefaultMergeMode
-    c = withDefault cRetryDuration cDefaultSseRetryDurationMs (retryDuration options)
-    d = map withData dataLines
+-- mergeFragment fragments mergeMode mergeSelector settleDuration useViewTransition
+--   where
+--     a = withEvent Edata MergeFragments
+--     b = withDefault cDefaultMergeMode
+--     c = withDefault cRetryDuration cDefaultSseRetryDurationMs (retryDuration options)
+--     d = map withData dataLines
     
 
 -- mergeFragment =
@@ -145,3 +146,8 @@ mergeFragment fragments mergeMode mergeSelector settleDuration useViewTransition
 --       [  withDefault        (mergeMode m)
 --       ,  withDefault        (mergeSelector m)
 --       ] <> fragmentOptions  (mergeFragmentOptions m)
+
+-- merge :: Builder -> MergeMode -> FragmentOptions -> Options -> Builder
+-- merge selector mode fragOptions options =
+
+

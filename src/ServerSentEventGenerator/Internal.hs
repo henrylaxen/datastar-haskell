@@ -6,18 +6,18 @@ import ServerSentEventGenerator.Types
 import Data.ByteString.Builder
 import Data.Default ( Default(..) )
 import Data.Maybe ( catMaybes )
--- import Control.Exception
+import Control.Exception
 
 
-xwithDefault ::(Eq a, ToBuilder a) => Builder -> a -> a -> Maybe Builder
-xwithDefault prefix d value = if value == d
-  then Nothing
-  else withPrefix prefix value
+-- xwithDefault ::(Eq a, ToBuilder a) => Builder -> a -> a -> Maybe Builder
+-- xwithDefault prefix d value = if value == d
+--   then Nothing
+--   else withPrefix prefix value
 
-withDefault :: (Eq a, ToBuilder a) => DatastarEventType -> a -> a -> Maybe Builder
-withDefault datastarEventType d value = if value == d
-  then Nothing
-  else Just $ toBuilder datastarEventType <> " " <>  toBuilder value
+-- withDefault :: (Eq a, ToBuilder a, ToBuilder b) => b -> a -> a -> Maybe Builder
+-- withDefault eventType defaultValue value = if value == defaultValue
+--   then Nothing
+--   else Just $ toBuilder eventType <> " " <>  toBuilder value
 
 -- -- withColon :: (Semigroup a, Data.String.IsString a) => a -> a
 -- withColon :: (ToBuilder a) => a -> Builder
@@ -26,22 +26,38 @@ withDefault datastarEventType d value = if value == d
 -- withJust :: (ToBuilder a) => a -> Maybe Builder
 -- withJust x = Just  (toBuilder x <> "\n")
 
-withData :: ToBuilder a => a -> Maybe Builder
-withData = withPrefix cData
+-- withData :: ToBuilder a => a -> Maybe Builder
+-- withData = withPrefix cData
 
-withEvent :: ToBuilder a => EventType -> a -> Maybe Builder
-withEvent e a = Just ((toBuilder e) <> toBuilder a <> "\n")
+-- withEvent :: ToBuilder a => EventType -> a -> Maybe Builder
+-- withEvent e a = Just ((toBuilder e) <> toBuilder a <> "\n")
 
 -- withOptionalEvent :: (ToBuilder a, ToBuilder b) -> 
 
-withPrefix :: (ToBuilder a, ToBuilder b) => a -> b -> Maybe Builder
-withPrefix prefix x = Just $ (toBuilder prefix) <> ": " <> toBuilder x <> "\n"
+-- withPrefix :: (ToBuilder a, ToBuilder b) => a -> b -> Maybe Builder
+-- withPrefix prefix x = Just $ (toBuilder prefix) <> ": " <> toBuilder x <> "\n"
 
 
 -- withBuilderList :: (ToBuilderList a) =>  a -> [Maybe Builder]
 -- withBuilderList s = map (Just . ((dsCommand s) <>)) (toBuilderList s)
 
+-- buildLine :: [Builder] -> Builder
+-- buildLine builders = (go mempty builders) <> "\n"
+--   where
+--     go _ [] = bug BuildLineDataIMissing
+--     go acc [x] = acc <> x
+--     go acc (b:bs) = b <> " " <> go acc bs
 
+ 
+-- t = buildLine ["a"]
+
+-- eventWithDefault :: (Eq a, ToBuilder a, ToBuilder b, ToBuilder c) => c -> b -> a -> a -> Builder
+-- eventWithDefault eventType dStarEvent defaultValue value = if value == defaultValue
+--   then mempty
+--   else toBuilder eventType <> ": " <> toBuilder dStarEvent <> " " <>  toBuilder value
+
+-- dataWithDefault :: (Eq a, ToBuilder a, ToBuilder b) => b -> a -> a -> Builder
+-- dataWithDefault = eventWithDefault cData
 
 -- -- I created this silly function to prevent the Orphan instance
 -- -- warning for defining an Eq instance for Builders using show
@@ -108,12 +124,3 @@ withPrefix prefix x = Just $ (toBuilder prefix) <> ": " <> toBuilder x <> "\n"
 --  | ExecuteScriptIsMissing          
 -- instance Exception ServerSentEventGeneratorExceptions
 
--- instance Show ServerSentEventGeneratorExceptions where
---  show RemoveFragmentSelectorIsMissing = "The selector field is required in RemoveFragment"
---  show SignalsSelectorIsMissing        = "The selector field is required in MergeSignals"
---  show RemoveSignalsPathIsMissing      = "The path field is required in RemoveSignals"
---  show RemoveSignalsPathIsEmpty        = "The path field cannot be an empty list"
---  show ExecuteScriptIsMissing          = "The script field is required in ExecuteScript"
-
--- bug :: Exception e => e -> a
--- bug = throw

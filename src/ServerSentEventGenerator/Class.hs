@@ -53,9 +53,11 @@ instance ToBuilder Bool where
   toBuilder False = "false"
   toBuilder True  = "true"
 
+-- class ToBuilders where
+--   toBuilders :: a -> [Builder]
 
-
-
+-- instance ToBuilder a => ToBuilders [a] where
+--   toBuilders  = map toBuilder
 {-
 
 
