@@ -10,8 +10,6 @@ import Data.Default
 import Data.ByteString.Builder
 import Data.Functor.Identity ( Identity(..) )
 
-
-
 class Monad m => HttpVersion m where
   -- | Are we running Http Version 1.1? Needed to send out the correct headers
   --   This needs to be implemented and depends on with web server you are using
