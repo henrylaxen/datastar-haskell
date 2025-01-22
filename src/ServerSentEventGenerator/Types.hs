@@ -90,6 +90,9 @@ data EventType =
 noSelector :: Selector Builder
 noSelector = SEL (mempty :: Builder)
 
+nil :: Builder
+nil = mempty
+
 instance Default EventType
   where def = MergeFragments
 
