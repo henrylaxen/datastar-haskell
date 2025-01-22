@@ -1,13 +1,14 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ServerSentEventGenerator.Class where
 
--- import Debug.Trace
 import Data.Text ( Text )
 import Data.ByteString.Lazy.UTF8
 import qualified Data.Text.Encoding as T ( encodeUtf8 )
 import Data.Default
 import Data.ByteString.Builder
 import Data.Functor.Identity ( Identity(..) )
+import System.IO
+import Debug.Trace
 
 class Monad m => HttpVersion m where
   -- | Are we running Http Version 1.1? Needed to send out the correct headers
@@ -49,22 +50,21 @@ instance ToBuilder a => ToBuilder [a] where
 instance ToBuilder Bool where
   toBuilder False = "false"
   toBuilder True  = "true"
-{-
 
-class Monad m => Sender m where
+class Monad m => SSE m where
   -- | Abstract function to do the actual IO.  Again dependent
   --   on which web server you are using
-  send :: Builder -> m ()
+  sse :: Builder -> m ()
 
-instance Sender Identity where
-  send x = Identity (trace (show x) ())
+instance SSE Identity where
+  sse x = Identity (trace (show x) ())
 
-instance Sender IO where
-  send = hPutBuilder stdout
+instance SSE IO where
+  sse = hPutBuilder stdout
 
--- | A handy little helper to watch the result of sending stuff
-watch :: Builder -> ()
-watch x = runIdentity (send x) 
+-- | A handy little helper to watch the result of sending stuff through sse
+watch ::  Builder -> ()
+watch x = runIdentity (sse x) 
 
-
--}
+-- class Monad m => ReadSignals m where
+--   r :: 

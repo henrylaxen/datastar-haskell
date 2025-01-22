@@ -3,19 +3,8 @@ module ServerSentEventGenerator.Internal where
 import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Constants
 import Data.ByteString.Builder
-import System.IO
-import Control.Concurrent.MVar
-
-sp :: [Builder] -> IO ()
-sp bs = do
-  m <- newMVar ()
-  mapM_ (print1 m) bs
-  where
-    print1 m b = do
-      takeMVar m
-      hPutBuilder stdout "\n----\n"
-      hPutBuilder stdout b
-      putMVar m ()
+import Control.Monad.IO.Class
+import Control.Concurrent
 
 buildLines :: [Builder] -> Builder
 buildLines builders = (go mempty builders)
@@ -36,3 +25,18 @@ withDefault dStarEvent defaultValue value = if value == defaultValue
 withList :: (ToBuilder a) => Builder -> [a] -> [Builder]
 withList name =  map (\x -> cData <> ": " <> name <> " " <> toBuilder x)
 
+  -- | Send a list of Builders, as a unit (single treaded) to the server dependent
+--   sse function, which is the sole method of the SSE class
+
+sendM :: MonadIO m => Builder -> m ()
+sendM b = liftIO $ do
+  m <- newMVar ()
+  forkIO (send1 m) >> return ()
+  where
+    send1 m = do
+      takeMVar m
+      sse b
+      putMVar m ()
+
+test :: MonadIO m => [Builder] -> m ()
+test = mapM_ sendM

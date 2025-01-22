@@ -25,6 +25,9 @@ import Data.ByteString.Builder --  ( Builder )
 import Data.Default ( Default(..) )
 import Control.Exception
 import NeatInterpolation
+import Control.Concurrent.MVar
+import Control.Monad.IO.Class
+
 
 -- import ServerSentEventGenerator.Internal
 -- import ServerSentEventGenerator.Newtypes
@@ -39,9 +42,6 @@ import NeatInterpolation
 
 sampleDataLines :: [Builder]
 sampleDataLines = ["line 1", "line 2"]
--- sp :: Send -> IO ()
--- sp = send . sendPure
-
 
 -- | returns the Http header for an SSE depending
 --   on the Http version you are using. Note: you will
@@ -61,13 +61,15 @@ sseHeaders = do
     sseHeaders2 = "Cache-control: no-cache\nContent-type: text/event-stream\n"
     sseHeaders1_1 = sseHeaders2 <> "Connection: keep-alive\n"
 
+send :: (MonadIO m, ToBuilder a) => EventType -> [a] -> Options -> m ()
+send a b c = sendM (sendPure a b c)
 
 -- | All server sent events can contain and Event Id and a Retry Duration as an option
 --   This works, because if the options are equal to their defaults, they will
 --   be removed from the output
 
 sendPure :: (ToBuilder a) => EventType -> [a] -> Options -> Builder
-sendPure eventType dataLines options = buildLines (a:b:c)
+sendPure eventType dataLines options = (buildLines (a:b:c)) <> "\n"
   where
     withSSEdefault value defaultValue field = if value ==  defaultValue then mempty
       else field <> ": " <> toBuilder value
@@ -75,75 +77,22 @@ sendPure eventType dataLines options = buildLines (a:b:c)
     b = toBuilder options
     c = map (\x -> cData <> ": " <> toBuilder x) dataLines
 
--- t1 = sp (send MergeFragments sampleDataLines (Options "abc123" 100))
--- t2 = sp (send MergeFragments sampleDataLines def)
-
--- sendSSE :: SSE -> [Builder]
--- sendSSE (SSE a b c) = send a b c
-
--- data MergeFragments = MergeFragments {
---      mergeData              :: DataLines
---    , mergeSelector          :: Selector
---    , mergeMode              :: MergeMode  -- > Morph is default
---    , mergeFragmentOptions   :: FragmentOptions
---    , mergeOptions           :: Options
---    } deriving Show
-
--- instance Default MergeFragments where
---   def                        = MergeFragments {
---        mergeData              = def
---     ,  mergeSelector          = def
---     ,  mergeMode              = def
---     ,  mergeFragmentOptions   = def
---     ,  mergeOptions           = def }
-
--- data FragmentOptions = FragmentOptions {
---     settleDuration    :: SettleDuration
---   , useViewTransition :: UseViewTransition
---   } deriving (Show)
-
--- -- | the MergeFragments and RemoveFragment data types share these options
-
--- instance Default FragmentOptions where
---   def = FragmentOptions {
---     settleDuration     = def
---   , useViewTransition  = def
---   }
-
-
--- mergeFragment fragments mergeMode mergeSelector settleDuration useViewTransition
---   where
---     a = withEvent Edata MergeFragments
---     b = withDefault cDefaultMergeMode
---     c = withDefault cRetryDuration cDefaultSseRetryDurationMs (retryDuration options)
---     d = map withData dataLines
-
-
--- mergeFragment =
---   where
---     e = withEvent (toBuilder MergeFragments)
-
-
--- mergeFragments :: MergeFragments -> Builder
--- mergeFragments m = format builders
---   where
-
---     builders =
---       [ Just (withEvent EventMergeFragments) ]
---       <> options (mergeOptions m)
---       <> withDefaults
---       <> withBuilderList (mergeData  m)
---     withDefaults =
---       [  withDefault        (mergeMode m)
---       ,  withDefault        (mergeSelector m)
---       ] <> fragmentOptions  (mergeFragmentOptions m)
-
-
 mergeFragments :: (ToBuilder a) => [a] -> Selector a -> MergeMode -> FragmentOptions -> Options -> Builder
 mergeFragments fragments selector mode fragOptions options = buildLines (a:b:c:d:e:f)
   where
     a = "event: " <> toBuilder MergeFragments
     b = toBuilder options
+    c = toBuilder selector
+    d = withDefault cMerge cDefaultMergeMode (toBuilder mode)
+    e = toBuilder fragOptions
+    f = withList cFragments fragments
+
+xmergeFragments :: (ToBuilder a) => [a] -> Selector a -> MergeMode -> FragmentOptions -> Options -> Builder
+xmergeFragments fragments selector mode fragOptions =
+  sendPure MergeFragments (c:d:e:f)
+  where
+    a = "event: " <> toBuilder MergeFragments
+--    b = toBuilder options
     c = toBuilder selector
     d = withDefault cMerge cDefaultMergeMode (toBuilder mode)
     e = toBuilder fragOptions
@@ -157,7 +106,7 @@ mt2 = mergeFragments sampleDataLines (SEL "#id") def def def
 mt3 = mergeFragments sampleDataLines (SEL "#id") Inner def def
 mt4 = mergeFragments sampleDataLines (SEL "#id") Inner (FO 1 False) def
 mt5 = mergeFragments sampleDataLines (SEL "#id") Inner (FO 1 True) (O "abc123" 10)
-mt = sp [mt1,mt2,mt3,mt4,mt5]
+mt = test [mt1,mt2,mt3,mt4,mt5]
 -- ----
 -- event: datastar-merge-fragments
 -- data: selector #id
@@ -198,13 +147,13 @@ removeFragments selector fragOptions options = buildLines [a,b,c,d]
     c = if s == def then bug RemoveFragmentSelectorIsMissing else s
     d = toBuilder fragOptions
 
-rt1 = sp [removeFragments noSelector def def] `catch`
+rt1 = test [removeFragments noSelector def def] `catch`
         (\(e :: ServerSentEventGeneratorExceptions) -> print e)
 rt2 = removeFragments (SEL ("#id" :: Builder)) def def
 rt3 = removeFragments (SEL ("#id" :: Text)) (FO 1 False) def
 rt4 = removeFragments (SEL ("#id" :: String)) (FO 1 True) def
 rt5 = removeFragments (SEL ("#id" :: ByteString)) (FO 1 False) (O "abc123" 10)
-rt6 = rt1 >> sp [rt2,rt3,rt4,rt5]
+rt6 = rt1 >> test [rt2,rt3,rt4,rt5]
 
 -- withDefault dStarEvent defaultValue value
 
@@ -226,11 +175,11 @@ mergeSignals signals onlyIfMissing  options = buildLines [a,b,c,d]
     d = withDefault cOnlyIfMissing cDefaultOnlyIfMissing onlyIfMissing
 
 testMergeSignal = [trimming|{"a":"b","c":true,"d":1}|]
-mst1 = sp [mergeSignals nil def def] `catch`
+mst1 = test [mergeSignals nil def def] `catch`
         (\(e :: ServerSentEventGeneratorExceptions) -> print e)
 mst2 = mergeSignals  testMergeSignal False def
 mst3 = mergeSignals  testMergeSignal True (O "abc123" 10)
-mst4 = mst1 >> sp [mst2,mst3]
+mst4 = mst1 >> test [mst2,mst3]
 
 -- <<bug>> Maybe? sse.py allows the paths to be empty,
 --                README.md does not specify
@@ -244,7 +193,8 @@ testRemoveSignal = ["velocity.x", "velocity.y", "position"] :: [Builder]
 rst1 = removeSignals ([] :: [Builder]) def
 rst2 = removeSignals  testRemoveSignal def
 rst3 = removeSignals  testRemoveSignal (O "abc123" 10)
-rst4 = sp [rst1,rst2,rst3]
+rst4 :: IO ()
+rst4 = test [rst1,rst2,rst3]
 
 -- <<bug>> Maybe? sse.py allows the script to be empty, and type is array
 --                README.md does not specify, and type is string
@@ -266,4 +216,5 @@ est1 = executeScript noList noList True def
 est2 = executeScript  testScript noList False def
 est3 = executeScript  testScript testAttributes False def
 est4 = executeScript  testScript testAttributes True (O "abc123" 10)
-est5 = sp [est1,est2,est3,est4]
+est5 :: IO ()
+est5 = test [est1,est2,est3,est4]
