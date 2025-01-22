@@ -1,29 +1,19 @@
-module ServerSentEventGenerator where
+module ServerSentEventGenerator  (
 
---     HttpVersion(..)
---   , Sender(..)
---   , ToBuilder(..)
---   , Options(..)
---   , FragmentOptions(..)
---   , EventType(..)
---   , MergeMode(..)
---   , Send(..)
---   , MergeFragments(..)
---   , RemoveFragment(..)
---   , MergeSignals(..)
---   , RemoveSignals(..)
---   , ExecuteScript(..)
---   , sseHeaders
---   , sendPure
---   , fragments
---   , mergeFragments
---   , removeFragment
---   , mergeSignals
---   , removeSignals
---   , executeScript
---   , withOptions
---   , sampleDataLines
---   , sp
+    HttpVersion(..)
+  , ToBuilder(..)
+  , Options(..)
+  , FragmentOptions(..)
+  , EventType(..)
+  , MergeMode(..)
+  , mergeFragments
+  , removeFragments
+  , mergeSignals
+  , removeSignals
+  , executeScript
+  , sseHeaders
+  , sendPure
+  ) where
 
 import Data.Text ( Text )
 import Data.ByteString.Lazy.UTF8
@@ -33,8 +23,6 @@ import ServerSentEventGenerator.Constants
 import ServerSentEventGenerator.Types
 import Data.ByteString.Builder --  ( Builder )
 import Data.Default ( Default(..) )
-import Data.Maybe
-import System.IO
 import Control.Exception
 import NeatInterpolation
 
@@ -129,17 +117,17 @@ sendPure eventType dataLines options = buildLines (a:b:c)
 --     b = withDefault cDefaultMergeMode
 --     c = withDefault cRetryDuration cDefaultSseRetryDurationMs (retryDuration options)
 --     d = map withData dataLines
-    
+
 
 -- mergeFragment =
 --   where
 --     e = withEvent (toBuilder MergeFragments)
-    
+
 
 -- mergeFragments :: MergeFragments -> Builder
 -- mergeFragments m = format builders
 --   where
-    
+
 --     builders =
 --       [ Just (withEvent EventMergeFragments) ]
 --       <> options (mergeOptions m)
@@ -161,12 +149,43 @@ mergeFragments fragments selector mode fragOptions options = buildLines (a:b:c:d
     e = toBuilder fragOptions
     f = withList cFragments fragments
 
+-- map (\x -> "mt" <> show x) [1..6]
+mt1,mt2,mt3,mt4,mt5 :: Builder
+mt :: IO ()
 mt1 = mergeFragments sampleDataLines noSelector def def def
 mt2 = mergeFragments sampleDataLines (SEL "#id") def def def
 mt3 = mergeFragments sampleDataLines (SEL "#id") Inner def def
 mt4 = mergeFragments sampleDataLines (SEL "#id") Inner (FO 1 False) def
 mt5 = mergeFragments sampleDataLines (SEL "#id") Inner (FO 1 True) (O "abc123" 10)
-mt6 = sp [mt1,mt2,mt3,mt4,mt5]
+mt = sp [mt1,mt2,mt3,mt4,mt5]
+-- ----
+-- event: datastar-merge-fragments
+-- data: selector #id
+-- data: fragments line 1
+-- data: fragments line 2
+-- ----
+-- event: datastar-merge-fragments
+-- data: selector #id
+-- data: mergeMode inner
+-- data: fragments line 1
+-- data: fragments line 2
+-- ----
+-- event: datastar-merge-fragments
+-- data: selector #id
+-- data: mergeMode inner
+-- data: settleDuration 1
+-- data: fragments line 1
+-- data: fragments line 2
+-- ----
+-- event: datastar-merge-fragments
+-- id: abc123
+-- retry: 10
+-- data: selector #id
+-- data: mergeMode inner
+-- data: settleDuration 1
+-- data: useViewTransition true
+-- data: fragments line 1
+-- data: fragments line 2λ> 
 
 -- <<Bug>> in sse.py, the selector is made optional
 
@@ -178,16 +197,16 @@ removeFragments selector fragOptions options = buildLines [a,b,c,d]
     b = toBuilder options
     c = if s == def then bug RemoveFragmentSelectorIsMissing else s
     d = toBuilder fragOptions
-      
+
 rt1 = sp [removeFragments noSelector def def] `catch`
         (\(e :: ServerSentEventGeneratorExceptions) -> print e)
-rt2 = removeFragments (SEL ("#id" :: Builder)) def def 
+rt2 = removeFragments (SEL ("#id" :: Builder)) def def
 rt3 = removeFragments (SEL ("#id" :: Text)) (FO 1 False) def
 rt4 = removeFragments (SEL ("#id" :: String)) (FO 1 True) def
 rt5 = removeFragments (SEL ("#id" :: ByteString)) (FO 1 False) (O "abc123" 10)
 rt6 = rt1 >> sp [rt2,rt3,rt4,rt5]
 
--- withDefault dStarEvent defaultValue value 
+-- withDefault dStarEvent defaultValue value
 
 -- <<Bug>> in sse.py or README.md,
 -- sse.py has signals as an array, README.md has signals as a string
@@ -229,23 +248,22 @@ rst4 = sp [rst1,rst2,rst3]
 
 -- <<bug>> Maybe? sse.py allows the script to be empty, and type is array
 --                README.md does not specify, and type is string
-executescript :: (ToBuilder a, Eq b, Monoid b, ToBuilder b) =>
+executeScript :: (ToBuilder a, Eq b, Monoid b, ToBuilder b) =>
                  [a] -> [b] -> Bool -> Options -> Builder
-executescript script attributes autoRemove options = buildLines ((a:b:c) <> d <> [e])
+executeScript script attributes autoRemove options = buildLines ((a:b:c) <> d <> [e])
   where
     a = "event: " <> toBuilder ExecuteScript
     b = toBuilder options
     c = withList cExecuteScript script
---    d = map (withNullDefault cAttributes cDefaultAttributes) attributes
     d = if null attributes
           then [cData <> ": " <> cAttributes <> " " <> cDefaultAttributes]
           else withList cAttributes attributes
     e = withDefault cAutoRemove cDefaultAutoRemove autoRemove
 testScript     = [[trimming|window.location = "https://data-star.dev"|]]
 testAttributes = [[trimming|type text/javascript|]]
-noList = [] :: [Builder]                 
-est1 = executescript noList noList True def
-est2 = executescript  testScript noList False def
-est3 = executescript  testScript testAttributes False def
-est4 = executescript  testScript testAttributes True (O "abc123" 10)
+noList = [] :: [Builder]
+est1 = executeScript noList noList True def
+est2 = executeScript  testScript noList False def
+est3 = executeScript  testScript testAttributes False def
+est4 = executeScript  testScript testAttributes True (O "abc123" 10)
 est5 = sp [est1,est2,est3,est4]

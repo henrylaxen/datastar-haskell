@@ -36,10 +36,3 @@ withDefault dStarEvent defaultValue value = if value == defaultValue
 withList :: (ToBuilder a) => Builder -> [a] -> [Builder]
 withList name =  map (\x -> cData <> ": " <> name <> " " <> toBuilder x)
 
--- withNullDefault :: (ToBuilder a, Monoid b, ToBuilder b, Eq b, ToBuilder c, Eq c, Monoid c) =>
---                    a -> b -> c -> Builder
--- withNullDefault prefix defaultValueIfNull value =
---   front <> (if value == mempty then toBuilder defaultValueIfNull else toBuilder value)
---   where front = (cData <> ": " <> toBuilder prefix <> " ")
-
-
