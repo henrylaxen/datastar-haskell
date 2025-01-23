@@ -8,6 +8,11 @@ import Data.ByteString.Builder --  ( Builder )
 import Data.Default ( Default(..) )
 import Control.Exception
 
+noSelector :: Selector Builder
+noSelector = SEL (mempty :: Builder)
+
+
+
 data Options = O {
     eventId       :: Builder
   , retryDuration :: Int
@@ -86,12 +91,6 @@ data EventType =
   | RemoveSignals
   | ExecuteScript
   deriving (Eq, Show)
-
-noSelector :: Selector Builder
-noSelector = SEL (mempty :: Builder)
-
-nil :: Builder
-nil = mempty
 
 instance Default EventType
   where def = MergeFragments

@@ -1,6 +1,6 @@
 .PHONY:	
 test:
-	cd .. ; cabal repl sse --with-compiler=doctest 2>&1 | tee /tmp/sse.log
+	pushd /home/henry/haskell/datastar-haskell/src ; cabal repl sse --with-compiler=doctest 2>&1 | tee /tmp/sse.log ; popd
 #	cd .. ; cabal repl sse --with-compiler=doctest --repl-options=--verbose 2>&1 | tee /tmp/e.log
 .PHONY:
 watch:
