@@ -1,14 +1,14 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ServerSentEventGenerator.Class where
 
-import Data.Text ( Text )
-import Data.ByteString.Lazy.UTF8
-import qualified Data.Text.Encoding as T ( encodeUtf8 )
-import Data.Default
-import Data.ByteString.Builder
-import Data.Functor.Identity ( Identity(..) )
-import System.IO
-import Debug.Trace
+import           Data.ByteString.Builder
+import           Data.ByteString.Lazy.UTF8
+import           Data.Default
+import           Data.Functor.Identity     ( Identity(..) )
+import           Data.Text                 ( Text )
+import qualified Data.Text.Encoding        as T ( encodeUtf8 )
+import           Debug.Trace
+import           System.IO
 
 class Monad m => HttpVersion m where
   -- | Are we running Http Version 1.1? Needed to send out the correct headers
@@ -25,7 +25,7 @@ instance Default Builder where
   def = mempty
 
 class ToBuilder a where
-  -- | Abstract function to allow you to use types other than Builder
+  -- | Function to allow you to use types other than Builder
   --   to do stuff. Better if you just stick with Builder.
   toBuilder :: a -> Builder
 
@@ -52,19 +52,21 @@ instance ToBuilder Bool where
   toBuilder True  = "true"
 
 class Monad m => SSE m where
-  -- | Abstract function to do the actual IO.  Again dependent
+  -- | Function to do the actual IO.  Dependent
   --   on which web server you are using
   sse :: Builder -> m ()
 
 instance SSE Identity where
+  -- | Could be handy for debugging
   sse x = Identity (trace (show x) ())
 
 instance SSE IO where
+  -- | Could be handy for debugging
   sse = hPutBuilder stdout
 
 -- | A handy little helper to watch the result of sending stuff through sse
 watch ::  Builder -> ()
-watch x = runIdentity (sse x) 
+watch x = runIdentity (sse x)
 
 -- class Monad m => ReadSignals m where
---   r :: 
+--   r ::

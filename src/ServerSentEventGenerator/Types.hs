@@ -11,8 +11,6 @@ import Control.Exception
 noSelector :: Selector Builder
 noSelector = SEL (mempty :: Builder)
 
-
-
 data Options = O {
     eventId       :: Builder
   , retryDuration :: Int
@@ -35,55 +33,14 @@ instance ToBuilder Options where
     in mconcat . buildLines $ [a,b]
 
 
--- t1 = buildLines []
--- t2 = toBuilder (def :: Options)
--- t3 = toBuilder (Options "ab123" 1)
--- t4 = toBuilder (Options "" 1)
--- t5 = toBuilder (Options "ab123" cDefaultSseRetryDurationMs)
--- t = mapM_ sp [t1,t2,t3,t4,t5]
-
-
--- data SSE = SSE {
---     sEventType     :: EventType
---   , sDataLines     :: [Builder]
---   , sOptions       :: Options
---   } deriving Show
-
--- instance Default SSE where
---   def = SSE def [] def
-
-{- From the README.MD
-ServerSentEventGenerator.send(
-    eventType: EventType,
-    dataLines: string[],
-    options?: {
-        eventId?: string,
-        retryDuration?: durationInMilliseconds
-    }) -}
-
--- data EventType =
---     Eevent
---   | Eretry
---   | Eid
---   | Edata
---   deriving Show
-
--- instance Default EventType where
---   def = Edata
--- instance ToBuilder EventType where
---   toBuilder Eevent = cEvent         <> cSpace
---   toBuilder Eretry = cRetryDuration <> cSpace
---   toBuilder Eid    = cEventId       <> cSpace
---   toBuilder Edata  = cData          <> cSpace
-
--- | A sum of the possible Datastar specific sse events that can be sent
-
 newtype Selector a = SEL {unSelector :: a}
   deriving (Show, Semigroup, Monoid, Eq)
 
 instance ToBuilder a => ToBuilder (Selector a) where
   toBuilder = withDefault cSelector cDefaultSelector . toBuilder . unSelector
     
+-- | A sum of the possible Datastar specific sse events that can be sent
+
 data EventType =
     MergeFragments
   | RemoveFragments
@@ -101,6 +58,8 @@ instance ToBuilder EventType where
   toBuilder MergeSignals     = cMergeSignals
   toBuilder RemoveSignals    = cRemoveSignals
   toBuilder ExecuteScript    = cExecuteScript
+
+-- | A sum of the possible Datastar specific merge modes that can be sent
 
 data MergeMode =
      Morph
@@ -144,12 +103,6 @@ instance ToBuilder FragmentOptions where
       withDefault cSettleDuration    cDefaultSettleDurationMs a
     , withDefault cUseViewTransition cDefaultUseViewTransition  b
     ]
-
--- t1 = buildLines ["a"]
--- t2 = toBuilder (def :: FragmentOptions)
--- t3 = toBuilder (FragmentOptions 1 True)
--- t4 = toBuilder (FragmentOptions 2 False)
-
 
 instance Show ServerSentEventGeneratorExceptions where
  show BuildLineDataIMissing           = "buildLine was call with nothing to build"

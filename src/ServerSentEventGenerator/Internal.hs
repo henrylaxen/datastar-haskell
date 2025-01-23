@@ -1,10 +1,10 @@
 module ServerSentEventGenerator.Internal where
 
+import Control.Concurrent
+import Control.Monad.IO.Class
+import Data.ByteString.Builder
 import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Constants
-import Data.ByteString.Builder
-import Control.Monad.IO.Class
-import Control.Concurrent
 
 nil :: Builder
 nil = mempty
@@ -86,4 +86,3 @@ rr x n = do
   putStr . Prelude.drop 1 $ a
   putStrLn " :: Builder"
   putStrLn (x <> " :: IO ()")
-
