@@ -13,39 +13,43 @@ module ServerSentEventGenerator  (
   , executeScript
   , sseHeaders
   , sendPure
+  , send
+
+  -- $setup
+  
   ) where
 
-import Data.Text ( Text )
-import Data.ByteString.Lazy.UTF8
 import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Internal
 import ServerSentEventGenerator.Constants
 import ServerSentEventGenerator.Types
 import Data.ByteString.Builder --  ( Builder )
 import Data.Default ( Default(..) )
-import Control.Exception
-import NeatInterpolation
--- import Control.Concurrent.MVar
 import Control.Monad.IO.Class
-import           Data.Functor.Identity
-
+-- import Data.Text ( Text )
+-- import NeatInterpolation
+-- import Data.ByteString.Lazy.UTF8
+-- import           Data.Functor.Identity
+-- import Control.Exception
+-- import Control.Concurrent.MVar
 -- import ServerSentEventGenerator.Internal
 -- import ServerSentEventGenerator.Newtypes
 
+
+
 -- $setup
-{- | >>> :{
-import           Data.Functor.Identity
-import           Data.Maybe
-import           Data.Text                 ( Text )
-import qualified Data.Text.Encoding        as T
-:}
--}
+-- >>> import           Data.Functor.Identity
+-- >>> import           Data.Maybe
+-- >>> import           Data.Text                 ( Text )
+-- >>> import qualified Data.Text.Encoding        as T
+-- >>> import Data.ByteString.Lazy ( ByteString )
+-- >>> import Control.Exception
+
+
 
 
 -- <<Bug>> in sse.py, the event_id is an Int
 
-sampleDataLines :: [Builder]
-sampleDataLines = ["line 1", "line 2"]
 
 -- | returns the Http header for an SSE depending
 --   on the Http version you are using. Note: you will
@@ -54,6 +58,7 @@ sampleDataLines = ["line 1", "line 2"]
 --
 -- Example:
 --
+-- >>> import           Data.Functor.Identity
 -- >>> runIdentity $ sseHeaders
 -- "Cache-control: no-cache\nContent-type: text/event-stream\nConnection: keep-alive\n"
 
@@ -84,13 +89,14 @@ sendPure eventType dataLines options = (buildLines (a:b:c)) <> "\n\n"
 {- | >>> :{
 do
   let
+    sampleDataLines :: [Builder]
+    sampleDataLines = ["line 1", "line 2"]
     them = [
         mergeFragments sampleDataLines noSelector def def def
       , mergeFragments sampleDataLines (SEL "#id") def def def
       , mergeFragments sampleDataLines (SEL "#id") Inner def def
       , mergeFragments sampleDataLines (SEL "#id") Inner (FO 1 False) def
-      , mergeFragments sampleDataLines (SEL "#id") Inner (FO 1 True) (O "abc123" 10)
-     ]
+      , mergeFragments sampleDataLines (SEL "#id") Inner (FO 1 True) (O "abc123" 10) ]
   test them
 :}
 event: datastar-merge-fragments
@@ -127,39 +133,6 @@ data: fragments line 2
 <BLANKLINE>
 -}
 
-{- |  :{
-test :: [Builder] -> IO ()
-test = mapM_ sendM
-ts :: [Builder]
-ts =
-  let
-    mt1,mt2,mt3,mt4,mt5 :: Builder
-    mt1 = mergeFragments sampleDataLines noSelector def def def
-    mt2 = mergeFragments sampleDataLines (SEL "#id") def def def
-    mt3 = mergeFragments sampleDataLines (SEL "#id") Inner def def
-    mt4 = mergeFragments sampleDataLines (SEL "#id") Inner (FO 1 False) def
-    mt5 = mergeFragments sampleDataLines (SEL "#id") Inner (FO 1 True) (O "abc123" 10)
-  in [mt1,mt2,mt3,mt4,mt5]
-ts
-:}
-abc
--}
-
-
-{- |  :{
-do
-  let
-    them = [
-      sendM (mergeFragments sampleDataLines noSelector def def def)
-    , sendM (mergeFragments sampleDataLines (SEL "#id") def def def)
-    , sendM (mergeFragments sampleDataLines (SEL "#id") Inner def def)
-    , sendM (mergeFragments sampleDataLines (SEL "#id") Inner (FO 1 False) def)
-    , sendM (mergeFragments sampleDataLines (SEL "#id") Inner (FO 1 True) (O "abc123" 10))
-    ]
-  test them
-:}
--}
-
 mergeFragments :: (ToBuilder a) => [a] -> Selector a -> MergeMode -> FragmentOptions -> Options -> Builder
 mergeFragments fragments selector mode fragOptions =  sendPure MergeFragments [buildLines (a:b:c:d)]
   where
@@ -168,15 +141,42 @@ mergeFragments fragments selector mode fragOptions =  sendPure MergeFragments [b
     c = toBuilder fragOptions
     d = withList cFragments fragments
 
-
--- mt1,mt2,mt3,mt4,mt5 :: Builder
--- mt :: IO ()
--- mt1 = mergeFragments sampleDataLines noSelector def def def
--- mt2 = mergeFragments sampleDataLines (SEL "#id") def def def
--- mt3 = mergeFragments sampleDataLines (SEL "#id") Inner def def
--- mt4 = mergeFragments sampleDataLines (SEL "#id") Inner (FO 1 False) def
--- mt5 = mergeFragments sampleDataLines (SEL "#id") Inner (FO 1 True) (O "abc123" 10)
--- mt = test [mt1,mt2,mt3,mt4,mt5]
+{- | >>> :{
+-- import Data.Text       ( Text )
+-- import Data.ByteString.Lazy ( ByteString )
+-- import Control.Exception
+do
+  let
+    rt1 :: IO ()
+    rt2,rt3,rt4,rt5 :: Builder
+    rt1 = test [removeFragments noSelector def def] `catch`
+             (\(e :: ServerSentEventGeneratorExceptions) -> print e)
+    rt2 = removeFragments (SEL ("#id" :: Builder)) def def
+    rt3 = removeFragments (SEL ("#id" :: Text)) (FO 1 False) def
+    rt4 = removeFragments (SEL ("#id" :: String)) (FO 1 True) def
+    rt5 = removeFragments (SEL ("#id" :: ByteString)) (FO 1 False) (O "abc123" 10)
+  rt1 >> test [rt2,rt3,rt4,rt5]
+:}
+<interactive>: The selector field is required in RemoveFragment
+event: datastar-remove-fragments
+data: data: selector #id
+<BLANKLINE>
+event: datastar-remove-fragments
+data: data: selector #id
+data: settleDuration 1
+<BLANKLINE>
+event: datastar-remove-fragments
+data: data: selector #id
+data: settleDuration 1
+data: useViewTransition true
+<BLANKLINE>
+event: datastar-remove-fragments
+id: abc123
+retry: 10
+data: data: selector #id
+data: settleDuration 1
+<BLANKLINE>
+-}
 
 -- <<Bug>> in sse.py, the selector is made optional  
 removeFragments :: (ToBuilder a) => Selector a -> FragmentOptions -> Options -> Builder
@@ -185,17 +185,6 @@ removeFragments selector fragOptions = sendPure RemoveFragments [buildLines [a,b
     s = toBuilder selector
     a = if s == def then bug RemoveFragmentSelectorIsMissing else s
     b = toBuilder fragOptions
-
--- rt2,rt3,rt4,rt5 :: Builder
--- rt, rt1 :: IO ()
--- rt1 = test [removeFragments noSelector def def] `catch`
---         (\(e :: ServerSentEventGeneratorExceptions) -> print e)
--- rt2 = removeFragments (SEL ("#id" :: Builder)) def def
--- rt3 = removeFragments (SEL ("#id" :: Text)) (FO 1 False) def
--- rt4 = removeFragments (SEL ("#id" :: String)) (FO 1 True) def
--- rt5 = removeFragments (SEL ("#id" :: ByteString)) (FO 1 False) (O "abc123" 10)
--- rt = rt1 >> test [rt2,rt3,rt4,rt5]
-
 
 -- <<Bug>> in sse.py or README.md,
 -- sse.py has signals as an array, README.md has signals as a string
@@ -212,15 +201,31 @@ mergeSignals signals onlyIfMissing = sendPure MergeSignals [buildLines [a,b]]
 -- if array -> else withList cSignals signals
     b = withDefault cOnlyIfMissing cDefaultOnlyIfMissing onlyIfMissing
 
--- testMergeSignal :: Text
--- testMergeSignal = [trimming|{"a":"b","c":true,"d":1}|]
--- mst2,mst3 :: Builder
--- mst, mst1 :: IO ()
--- mst1 = test [mergeSignals nil def def] `catch`
---         (\(e :: ServerSentEventGeneratorExceptions) -> print e)
--- mst2 = mergeSignals  testMergeSignal False def
--- mst3 = mergeSignals  testMergeSignal True (O "abc123" 10)
--- mst = mst1 >> test [mst2,mst3]
+{- | >>> :{
+-- import Data.Text ( Text )
+-- import Control.Exception
+do
+  let
+    testMergeSignal :: Text
+    testMergeSignal = "{\"a\":\"b\",\"c\":true,\"d\":1}"
+    mst1 = test [mergeSignals nil def def] `catch`
+            (\(e :: ServerSentEventGeneratorExceptions) -> print e)
+    them = [
+        mergeSignals  testMergeSignal False def
+     ,  mergeSignals  testMergeSignal True (O "abc123" 10) ]
+  mst1 >> test them
+:}
+<interactive>: The selector field is required in MergeSignals
+event: datastar-merge-signals
+data: data: signals {"a":"b","c":true,"d":1}
+<BLANKLINE>
+event: datastar-merge-signals
+id: abc123
+retry: 10
+data: data: signals {"a":"b","c":true,"d":1}
+data: onlyIfMissing true
+<BLANKLINE>
+-}
 
 -- <<bug>> Maybe? sse.py allows the paths to be empty,
 --                README.md does not specify
