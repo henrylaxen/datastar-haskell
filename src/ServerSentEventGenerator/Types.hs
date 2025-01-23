@@ -32,7 +32,7 @@ instance ToBuilder Options where
            else field <> ": " <> toBuilder value
       a = withSSEdefault  (eventId options) mempty cEventId
       b = withSSEdefault  (retryDuration options) cDefaultSseRetryDurationMs cRetryDuration
-    in buildLines [a,b]
+    in mconcat . buildLines $ [a,b]
 
 
 -- t1 = buildLines []
@@ -140,7 +140,7 @@ instance Default FragmentOptions where
   }
 
 instance ToBuilder FragmentOptions where
-  toBuilder (FO a b) = buildLines [
+  toBuilder (FO a b) = mconcat . buildLines $ [
       withDefault cSettleDuration    cDefaultSettleDurationMs a
     , withDefault cUseViewTransition cDefaultUseViewTransition  b
     ]

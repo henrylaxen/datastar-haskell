@@ -1,0 +1,14 @@
+test :: [Builder] -> IO ()
+sendM :: MonadIO m => Builder -> m ()
+sendPure :: (ToBuilder a) => EventType -> [a] -> Options -> Builder
+withList :: (ToBuilder a) => Builder -> [a] -> [Builder]
+withDefault :: (Eq a, ToBuilder a, ToBuilder b) => b -> a -> a -> Builder
+buildLines :: [Builder] -> [Builder]
+{- | >>> :{
+do
+  let
+    them = [
+    ]
+  test them
+:}
+-}

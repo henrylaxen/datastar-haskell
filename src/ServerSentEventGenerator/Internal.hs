@@ -9,14 +9,16 @@ import Control.Concurrent
 nil :: Builder
 nil = mempty
 
+nils :: [Builder]
+nils = []
+
 -- | Combines a list of Builders into a single Builder, using the same mechanism
 --   as the more commonly known functions wunWrds or unLines.  A line feed is
 --   inserted between each builder in the list.  Empty builders are removed, so
 --   there are no blank lines.
 
-
-buildLines :: [Builder] -> Builder
-buildLines builders = (go mempty builders)
+buildLines :: [Builder] -> [Builder]
+buildLines builders = if (mconcat builders) == mempty then [] else [go mempty builders]
   where
     go acc []     = acc
     go acc [x]    = x <> acc
