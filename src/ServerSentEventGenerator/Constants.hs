@@ -1,6 +1,6 @@
 module ServerSentEventGenerator.Constants where
 
-import Data.ByteString.Builder
+import Data.Text
 
 -- taken from consts.ts
 -- why?
@@ -9,14 +9,14 @@ import Data.ByteString.Builder
 -- a function call in front of each data constructor, so I
 -- decided to just use the prefix "c"
 
-cDATASTAR, cDATASTAR_EVENT, cDATASTAR_REQUEST, cVERSION, cMorph        :: Builder
-cInner, cOuter, cPrepend, cAppend, cBefore, cAfter, cUpsertAttributes  :: Builder
-cMergeFragments, cMergeSignals, cRemoveFragments, cRemoveSignals       :: Builder
-cExecuteScript, cSelector, cMerge, cSettleDuration, cFragments         :: Builder
-cUseViewTransition, cSignals, cOnlyIfMissing, cPaths, cScript          :: Builder
-cAttributes, cAutoRemove, cDefaultAttributes                           :: Builder
-cEventId, cDefaultEventId, cRetryDuration                              :: Builder
-cDefaultSelector, cDefaultMergeMode                                    :: Builder
+cDATASTAR, cDATASTAR_EVENT, cDATASTAR_REQUEST, cVERSION, cMorph        :: Text
+cInner, cOuter, cPrepend, cAppend, cBefore, cAfter, cUpsertAttributes  :: Text
+cMergeFragments, cMergeSignals, cRemoveFragments, cRemoveSignals       :: Text
+cExecuteScript, cSelector, cMerge, cSettleDuration, cFragments         :: Text
+cUseViewTransition, cSignals, cOnlyIfMissing, cPaths, cScript          :: Text
+cAttributes, cAutoRemove, cDefaultAttributes                           :: Text
+cEventId, cDefaultEventId, cRetryDuration                              :: Text
+cDefaultSelector, cDefaultMergeMode                                    :: Text
 
 cDefaultSettleDurationMs, cDefaultSseRetryDurationMs                   :: Int
 cDefaultFragmentsUseViewTransitions                                    :: Bool
@@ -65,11 +65,11 @@ cEventId                            =  "id"
 cRetryDuration                      =  "retry"
 cAutoRemove                         =  "autoRemove"
 -- added by henry
-cData :: Builder
+cData :: Text
 cData                               =  "data"
-cEvent :: Builder
+cEvent :: Text
 cEvent                              =  "event"
-cSpace :: Builder
+cSpace :: Text
 cSpace                              =  ": "
   
 -- DATASTAR_KEY =  "datastar"

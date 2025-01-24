@@ -4,15 +4,12 @@ module ServerSentEventGenerator.Types where
 import ServerSentEventGenerator.Internal
 import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Constants
-import Data.ByteString.Builder --  ( Builder )
-import Data.Default ( Default(..) )
+import Data.Text
+import Data.Default
 import Control.Exception
 
-noSelector :: Selector Builder
-noSelector = SEL (mempty :: Builder)
-
 data Options = O {
-    eventId       :: Builder
+    eventId       :: Text
   , retryDuration :: Int
   } deriving (Show)
 
@@ -22,22 +19,25 @@ instance Default Options where
   , retryDuration = cDefaultSseRetryDurationMs
   }
 
-instance ToBuilder Options where
-  toBuilder options =
+instance ToText Options where
+  toText options =
     let
       withSSEdefault value defaultValue field =
         if value ==  defaultValue then mempty
-           else field <> ": " <> toBuilder value
+           else field <> ": " <> toText value
       a = withSSEdefault  (eventId options) mempty cEventId
       b = withSSEdefault  (retryDuration options) cDefaultSseRetryDurationMs cRetryDuration
     in mconcat . buildLines $ [a,b]
 
 
-newtype Selector a = SEL {unSelector :: a}
+newtype Selector = SEL {unSelector :: Text}
   deriving (Show, Semigroup, Monoid, Eq)
 
-instance ToBuilder a => ToBuilder (Selector a) where
-  toBuilder = withDefault cSelector cDefaultSelector . toBuilder . unSelector
+instance Default Selector where
+  def = SEL ""
+
+instance ToText Selector where
+  toText = withDefault cSelector cDefaultSelector . unSelector
     
 -- | A sum of the possible Datastar specific sse events that can be sent
 
@@ -52,12 +52,12 @@ data EventType =
 instance Default EventType
   where def = MergeFragments
 
-instance ToBuilder EventType where
-  toBuilder MergeFragments   = cMergeFragments
-  toBuilder RemoveFragments  = cRemoveFragments
-  toBuilder MergeSignals     = cMergeSignals
-  toBuilder RemoveSignals    = cRemoveSignals
-  toBuilder ExecuteScript    = cExecuteScript
+instance ToText EventType where
+  toText MergeFragments   = cMergeFragments
+  toText RemoveFragments  = cRemoveFragments
+  toText MergeSignals     = cMergeSignals
+  toText RemoveSignals    = cRemoveSignals
+  toText ExecuteScript    = cExecuteScript
 
 -- | A sum of the possible Datastar specific merge modes that can be sent
 
@@ -75,15 +75,15 @@ data MergeMode =
 instance Default MergeMode
   where def = Morph
 
-instance ToBuilder MergeMode where
-   toBuilder Morph            = cMorph
-   toBuilder Inner            = cInner
-   toBuilder Outer            = cOuter
-   toBuilder Prepend          = cPrepend
-   toBuilder Append           = cAppend
-   toBuilder Before           = cBefore
-   toBuilder After            = cAfter
-   toBuilder UpsertAttributes = cUpsertAttributes
+instance ToText MergeMode where
+   toText Morph            = cMorph
+   toText Inner            = cInner
+   toText Outer            = cOuter
+   toText Prepend          = cPrepend
+   toText Append           = cAppend
+   toText Before           = cBefore
+   toText After            = cAfter
+   toText UpsertAttributes = cUpsertAttributes
 
 data FragmentOptions = FO {
     settleDuration    :: Int
@@ -98,10 +98,10 @@ instance Default FragmentOptions where
   , useViewTransition  = cDefaultUseViewTransition
   }
 
-instance ToBuilder FragmentOptions where
-  toBuilder (FO a b) = mconcat . buildLines $ [
-      withDefault cSettleDuration    cDefaultSettleDurationMs a
-    , withDefault cUseViewTransition cDefaultUseViewTransition  b
+instance ToText FragmentOptions where
+  toText (FO a b) = mconcat . buildLines $ [
+      withDefault cSettleDuration    (toText cDefaultSettleDurationMs)   (toText a)
+    , withDefault cUseViewTransition (toText cDefaultUseViewTransition)  (toText b)
     ]
 
 instance Show ServerSentEventGeneratorExceptions where

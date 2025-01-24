@@ -1,24 +1,18 @@
 module ServerSentEventGenerator.Internal where
 
 import Control.Concurrent
-import Control.Monad.IO.Class
-import Data.ByteString.Builder
+import Control.Exception
+import Data.Text hiding ( map )
 import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Constants
 
-nil :: Builder
-nil = mempty
-
-nils :: [Builder]
-nils = []
-
--- | Combines a list of Builders into a single Builder, using the same mechanism
+-- | Combines a list of Texts into a single Text, using the same mechanism
 --   as the more commonly known functions wunWrds or unLines.  A line feed is
 --   inserted between each builder in the list.  Empty builders are removed, so
 --   there are no blank lines.
 
-buildLines :: [Builder] -> [Builder]
-buildLines builders = if (mconcat builders) == mempty then [] else [go mempty builders]
+buildLines :: [Text] -> [Text]
+buildLines texts = if (mconcat texts) == mempty then [] else [go mempty texts]
   where
     go acc []     = acc
     go acc [x]    = x <> acc
@@ -31,19 +25,19 @@ buildLines builders = if (mconcat builders) == mempty then [] else [go mempty bu
 {- | >>> :{
 do
   let
-    wa        = "a"      :: Builder
-    wb        = "b"      :: Builder
-    prefix    = "prefix" :: Builder
-    enclose              :: Builder -> Builder
+    wa        = "a"      :: Text
+    wb        = "b"      :: Text
+    prefix    = "prefix" :: Text
+    enclose              :: Text -> Text
     enclose x = "[" <> x <> "]\n"
     them = map enclose [
          withDefault prefix wa wa
        , withDefault prefix wa wa
        , withDefault prefix wb wa
        , withDefault prefix wa wb
-       , withDefault prefix nil nil
-       , withDefault prefix wa nil
-       , withDefault prefix nil wa ]
+       , withDefault prefix "" ""
+       , withDefault prefix wa ""
+       , withDefault prefix "" wa ]
   test them
  :}
 []
@@ -55,34 +49,35 @@ do
 [data: prefix a]
 -}
 
-withDefault :: (Eq a, ToBuilder a, ToBuilder b) => b -> a -> a -> Builder
+withDefault :: Text -> Text -> Text -> Text
 withDefault dStarEvent defaultValue value =
-  if value == defaultValue || toBuilder value == mempty
+  if value == defaultValue || value == mempty
   then mempty
-  else cData <> ": " <> toBuilder dStarEvent <> " " <>  toBuilder value
+  else cData <> ": " <> dStarEvent <> " " <>  value
 
-withList :: (ToBuilder a) => Builder -> [a] -> [Builder]
-withList name =  map (\x -> cData <> ": " <> name <> " " <> toBuilder x)
+withList :: Text -> [Text] -> [Text]
+withList name =  Prelude.map (\x -> cData <> ": " <> name <> " " <> x)
 
--- | Send a list of Builders, as a unit (single treaded) to the server dependent
+-- | Send a list of Texts, as a unit (single treaded) to the server dependent
 --   sse function, which is the sole method of the SSE class
 
-sendM :: MonadIO m => Builder -> m ()
-sendM b = liftIO $ do
-  m <- newMVar ()
-  forkIO (send1 m) >> return ()
-  where
-    send1 m = do
-      takeMVar m
-      sse b
-      putMVar m ()
+sendM :: Text -> IO ()
+sendM b = singleThreaded (sse b)
 
-test :: [Builder] -> IO ()
+singleThreaded :: IO a -> IO a
+singleThreaded action = bracket 
+    (newMVar ()) 
+    (\mvar -> takeMVar mvar) 
+    (\_ -> action)
+
+
+
+test :: [Text] -> IO ()
 test = mapM_ sendM
 
 rr :: String -> Int -> IO ()
 rr x n = do
-  let a = concatMap (\y -> ("," <> x <> show y) ) [1 .. n]
+  let a = Prelude.concatMap (\y -> ("," <> x <> show y) ) [1 .. n]
   putStr . Prelude.drop 1 $ a
-  putStrLn " :: Builder"
+  putStrLn " :: Text"
   putStrLn (x <> " :: IO ()")

@@ -1,7 +1,7 @@
 module ServerSentEventGenerator  (
 
     HttpVersion(..)
-  , ToBuilder(..)
+  , ToText(..)
   , Options(..)
   , FragmentOptions(..)
   , EventType(..)
@@ -20,19 +20,16 @@ module ServerSentEventGenerator  (
   ) where
 
 import Control.Monad.IO.Class
-import Data.ByteString.Builder            ( Builder )
 import Data.Default                       ( Default(..) )
+import Data.Text hiding (map)
 import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Constants
 import ServerSentEventGenerator.Internal
 import ServerSentEventGenerator.Types
 
 -- $setup
--- >>> import           Data.Functor.Identity
--- >>> import           Data.Maybe
--- >>> import           Data.Text                 ( Text )
--- >>> import qualified Data.Text.Encoding        as T
--- >>> import Data.ByteString.Lazy ( ByteString )
+-- >>> import Data.Functor.Identity
+-- >>> import Data.Maybe
 -- >>> import Control.Exception
 
 -- <<Bug>> in sse.py, the event_id is an Int
@@ -48,7 +45,7 @@ import ServerSentEventGenerator.Types
 -- >>> runIdentity $ sseHeaders
 -- "Cache-control: no-cache\nContent-type: text/event-stream\nConnection: keep-alive\n"
 
-sseHeaders :: HttpVersion m => m Builder
+sseHeaders :: HttpVersion m => m Text
 sseHeaders = do
   b <- isHttpVersion1_1
   return $ if b then sseHeaders1_1 else sseHeaders2
@@ -56,29 +53,29 @@ sseHeaders = do
     sseHeaders2 = "Cache-control: no-cache\nContent-type: text/event-stream\n"
     sseHeaders1_1 = sseHeaders2 <> "Connection: keep-alive\n"
 
-send :: (MonadIO m, ToBuilder a) => EventType -> [a] -> Options -> m ()
-send a b c = sendM (sendPure a b c)
+send :: (MonadIO m) => EventType -> [Text] -> Options -> m ()
+send a b c = liftIO $ sendM (sendPure a b c)
 
 -- | All server sent events can contain and Event Id and a Retry Duration as an option
 --   This works, because if the options are equal to their defaults, they will
 --   be removed from the output
 
-sendPure :: (ToBuilder a) => EventType -> [a] -> Options -> Builder
+sendPure :: EventType -> [Text] -> Options -> Text
 sendPure eventType dataLines options = mconcat (buildLines (a:b:c)) <> "\n\n"
   where
 --     withSSEdefault value defaultValue field = if value == defaultValue then mempty
---       else field <> ": " <> toBuilder value
-    a = "event: " <> toBuilder eventType
-    b = toBuilder options
-    c = map (\x -> cData <> ": " <> toBuilder x) dataLines
+--       else field <> ": " <> toText value
+    a = "event: " <> toText eventType
+    b = toText options
+    c = map (\x -> cData <> ": " <> toText x) dataLines
 
 {- | >>> :{
 do
   let
-    sampleDataLines :: [Builder]
+    sampleDataLines :: [Text]
     sampleDataLines = ["line 1", "line 2"]
     them = [
-        mergeFragments sampleDataLines noSelector def def def
+        mergeFragments sampleDataLines def def def def
       , mergeFragments sampleDataLines (SEL "#id") def def def
       , mergeFragments sampleDataLines (SEL "#id") Inner def def
       , mergeFragments sampleDataLines (SEL "#id") Inner (FO 1 False) def
@@ -119,28 +116,28 @@ data: fragments line 2
 <BLANKLINE>
 -}
 
-mergeFragments :: (ToBuilder a) => [a] -> Selector a -> MergeMode -> FragmentOptions -> Options -> Builder
+mergeFragments :: [Text] -> Selector -> MergeMode -> FragmentOptions -> Options -> Text
 mergeFragments fragments selector mode fragOptions =  sendPure MergeFragments (buildLines (a:b:c:d))
   where
-    a = toBuilder selector
-    b = withDefault cMerge cDefaultMergeMode (toBuilder mode)
-    c = toBuilder fragOptions
+    a = toText selector
+    b = withDefault cMerge cDefaultMergeMode (toText mode)
+    c = toText fragOptions
     d = withList cFragments fragments
 
 {- | >>> :{
 do
   let
     rt1 :: IO ()
-    rt2,rt3,rt4,rt5 :: Builder
-    rt1 = test [removeFragments noSelector def def] `catch`
+    rt2,rt3,rt4,rt5 :: Text
+    rt1 = test [removeFragments def def def] `catch`
              (\(e :: ServerSentEventGeneratorExceptions) -> print e)
-    rt2 = removeFragments (SEL ("#id" :: Builder)) def def
-    rt3 = removeFragments (SEL ("#id" :: Text)) (FO 1 False) def
-    rt4 = removeFragments (SEL ("#id" :: String)) (FO 1 True) def
-    rt5 = removeFragments (SEL ("#id" :: ByteString)) (FO 1 False) (O "abc123" 10)
+    rt2 = removeFragments (SEL "#id") def def
+    rt3 = removeFragments (SEL "#id") (FO 1 False) def
+    rt4 = removeFragments (SEL "#id") (FO 1 True) def
+    rt5 = removeFragments (SEL "#id") (FO 1 False) (O "abc123" 10)
   rt1 >> test [rt2,rt3,rt4,rt5]
 :}
-<interactive>: The selector field is required in RemoveFragment
+The selector field is required in RemoveFragment
 event: datastar-remove-fragments
 data: data: selector #id
 <BLANKLINE>
@@ -162,26 +159,26 @@ data: settleDuration 1
 -}
 
 -- <<Bug>> in sse.py, the selector is made optional
-removeFragments :: (ToBuilder a) => Selector a -> FragmentOptions -> Options -> Builder
+removeFragments :: Selector  -> FragmentOptions -> Options -> Text
 removeFragments selector fragOptions = sendPure RemoveFragments (buildLines [a,b])
   where
-    s = toBuilder selector
+    s = toText selector
     a = if s == def then bug RemoveFragmentSelectorIsMissing else s
-    b = toBuilder fragOptions
+    b = toText fragOptions
 
 {- | >>> :{
 do
   let
     testMergeSignal :: Text
     testMergeSignal = "{\"a\":\"b\",\"c\":true,\"d\":1}"
-    mst1 = test [mergeSignals nil def def] `catch`
+    mst1 = test [mergeSignals def def def] `catch`
             (\(e :: ServerSentEventGeneratorExceptions) -> print e)
     them = [
         mergeSignals  testMergeSignal False def
      ,  mergeSignals  testMergeSignal True (O "abc123" 10) ]
   mst1 >> test them
 :}
-<interactive>: The selector field is required in MergeSignals
+The selector field is required in MergeSignals
 event: datastar-merge-signals
 data: data: signals {"a":"b","c":true,"d":1}
 <BLANKLINE>
@@ -198,22 +195,22 @@ data: onlyIfMissing true
 -- I think it would be better if it were an array. That would also make
 -- an empty list a valid mergeSignals request, which might be more
 -- convenient for programmers.  Of course it's up to you.
--- if array -> mergeSignals :: (ToBuilder a) => [a] -> Bool -> Options -> Builder
-mergeSignals :: (ToBuilder a) => a -> Bool -> Options -> Builder
+-- if array -> mergeSignals :: [Text] -> Bool -> Options -> Text
+mergeSignals :: Text -> Bool -> Options -> Text
 mergeSignals signals onlyIfMissing = sendPure MergeSignals (buildLines [a,b])
   where
-    a = if (toBuilder signals) == mempty
+    a = if (toText signals) == mempty
           then bug SignalsSelectorIsMissing
-          else withDefault cSignals nil (toBuilder signals)
+          else withDefault cSignals "" (toText signals)
 -- if array -> else withList cSignals signals
-    b = withDefault cOnlyIfMissing cDefaultOnlyIfMissing onlyIfMissing
+    b = withDefault cOnlyIfMissing (toText cDefaultOnlyIfMissing) (toText onlyIfMissing)
 
 {- | >>> :{
 do
   let
-    testRemoveSignal = ["velocity.x", "velocity.y", "position"] :: [Builder]
+    testRemoveSignal = ["velocity.x", "velocity.y", "position"] :: [Text]
     them = [
-        removeSignals nils def
+        removeSignals [] def
       , removeSignals  testRemoveSignal def
       , removeSignals  testRemoveSignal (O "abc123" 10) ]
   test them
@@ -236,7 +233,7 @@ data: datastar-remove-signals position
 
 -- <<bug>> Maybe? sse.py allows the paths to be empty,
 --                README.md does not specify
-removeSignals :: (ToBuilder a) => [a] -> Options -> Builder
+removeSignals :: [Text] -> Options -> Text
 removeSignals paths = sendPure RemoveSignals (buildLines c)
   where
     c = withList cRemoveSignals paths
@@ -244,11 +241,11 @@ removeSignals paths = sendPure RemoveSignals (buildLines c)
 {- | >>> :{
 do
   let
-    testScript     = ["window.location = \"https://data-star.dev\""] :: [Builder]
-    testAttributes = ["type text/javascript"] :: [Builder]
+    testScript     = ["window.location = \"https://data-star.dev\""] :: [Text]
+    testAttributes = ["type text/javascript"] :: [Text]
     them = [
-        executeScript nils nils True def
-      , executeScript  testScript nils False def
+        executeScript [] [] True def
+      , executeScript  testScript [] False def
       , executeScript  testScript testAttributes False def
       , executeScript  testScript testAttributes True (O "abc123" 10)  ]
   test them
@@ -276,12 +273,11 @@ data: attributes type text/javascript
 
 -- <<bug>> Maybe? sse.py allows the script to be empty, and type is array
 --                README.md does not specify, and type is string
-executeScript :: (ToBuilder a, Eq b, Monoid b, ToBuilder b) =>
-                 [a] -> [b] -> Bool -> Options -> Builder
+executeScript ::  [Text] -> [Text] -> Bool -> Options -> Text
 executeScript script attributes autoRemove = sendPure ExecuteScript (buildLines (a <> b <> [c]))
   where
     a = withList cExecuteScript script
-    b = if null attributes
+    b = if Prelude.null attributes
           then [cData <> ": " <> cAttributes <> " " <> cDefaultAttributes]
           else withList cAttributes attributes
-    c = withDefault cAutoRemove cDefaultAutoRemove autoRemove
+    c = withDefault cAutoRemove (toText cDefaultAutoRemove) (toText autoRemove)
