@@ -1,16 +1,18 @@
+BASE=/home/henry/haskell/datastar-haskell
+
 .PHONY:	
 test:
-	pushd /home/henry/haskell/datastar-haskell/src ; cabal repl sse --with-compiler=doctest 2>&1 | tee /tmp/sse.log ; popd
-#	cd .. ; cabal repl sse --with-compiler=doctest --repl-options=--verbose 2>&1 | tee /tmp/e.log
+	pushd $(BASE) ; cabal repl sse --with-compiler=doctest 2>&1 | tee /tmp/sse.log ; popd
+#	pushd $(BASE) ; cabal repl sse --with-compiler=doctest --repl-options=--verbose 2>&1 | tee /tmp/e.log
 .PHONY:
 watch:
-	cd .. ; ghciwatch --clear
+	pushd  $(BASE) ; ghciwatch --clear ; popd
 .PHONY:
 build:
-	cd .. ; cabal build
+	pushd  $(BASE) ; cabal build  ; popd
 .PHONY:
 clean:
-	cd .. ; rm -rf dist-newstyle
+	pushd  $(BASE) ; rm -rf dist-newstyle ; popd
 .PHONY:
 tags:
-	find . -name "*.hs" | xargs ghc-tags --etags -f TAGS
+	pushd  $(BASE)/src ; find . -name "*.hs" | xargs ghc-tags --etags -f TAGS ; popd

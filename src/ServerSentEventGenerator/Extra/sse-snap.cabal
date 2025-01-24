@@ -1,7 +1,8 @@
 cabal-version:      3.12
-name:               sse
+name:               sse-snap
 version:            1.0.0.0
-synopsis:           Interface for Server Sent Events using the DataStar framework
+synopsis:           Interface for ServerSentEventGenerator and the
+                    Snap web framework
 description:        See https://data-star.dev/ for full information
                     about the wonderful new (2024) backend framework,
                     almost totally powered by the frontend.
@@ -26,14 +27,16 @@ common warnings
 
 common deps
   build-depends:
-        base
-      , bytestring
-      , data-default
-      , extra
-      , neat-interpolation
-      , text
-      , utf8-string
-      , template-haskell
+      base
+    , io-streams
+    , snap
+    , bytestring
+--       , data-default
+--       , extra
+--       , neat-interpolation
+--       , text
+--       , utf8-string
+--       , template-haskell
 
 common default-extensions
   default-extensions:
@@ -47,12 +50,7 @@ common default-extensions
 
 library
     import:           deps,warnings,default-extensions
-    exposed-modules:
-        ServerSentEventGenerator
-      , ServerSentEventGenerator.Class
-      , ServerSentEventGenerator.Constants
-      , ServerSentEventGenerator.Types
+    exposed-modules:  S
     other-modules:
-        ServerSentEventGenerator.Internal
-    hs-source-dirs:   src
+    hs-source-dirs:   .
     default-language: Haskell2010

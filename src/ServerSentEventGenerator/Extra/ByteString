@@ -1,0 +1,11 @@
+CorePrelude terror :: Text -> a
+Debug error :: Text -> a
+Panic panic :: Text -> a
+Control.Logging errorL :: Text -> a
+Control.Logging errorL' :: Text -> a
+Data.GI.CodeGen.Util terror :: Text -> a
+Data.Builder textToBuilder :: ToBuilder Text builder => Text -> builder
+Unsafe.Coerce unsafeCoerce :: a -> b
+GHC.Prim unsafeCoerce# :: a -> b
+System.Unsafe coerce :: a -> b
+-- plus more results not shown, pass --count=20 to see more

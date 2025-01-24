@@ -1,0 +1,27 @@
+<head>
+    <title>Haskell + Datastar Example</title>
+    <script type="module" defer src="/datastar.js"></script>
+    <style>.hidden {display:none;}</style>
+</head>
+<body>
+    <h2>Haskell + Datastar Example</h2>
+    <main class="container" id="main" >
+    <input data-bind-input type="text" />
+    <div> There is an empty div below whose text will be replaced
+          <br/>with the contents of the input signal
+    </div>
+    <div data-text="input.value">
+    </div>
+    <div>
+      <button data-on-click="sse('/feed')">Start Feed</button>
+      The current time will be updated below every 2 seconds
+      <div id="feed">feed goes here</div>
+    </div>
+    <div>There is a hidden button below that will appear as soon
+         <br/>as text is written into the text box above
+    </div>
+    <button data-class="{hidden: input.value == '', bold: input.value == 1}">Hello</button>
+    </main>
+    <b>The actual html for this page is written below</b> <replacedByThisPageHere>
+</body>
+</html>
