@@ -5,9 +5,11 @@ import           Control.Exception
 import           Control.Monad
 import           Data.ByteString
 import           Data.ByteString.Builder
-import           Snap
+import           Snap hiding ( headers )
 import qualified System.IO.Streams       as Streams
 import Data.ByteString.Builder.Extra
+import           Data.Text.Encoding
+import           NeatInterpolation   hiding (text)
 
 type SSEstream = Streams.OutputStream Builder
 
@@ -19,27 +21,35 @@ sseRun :: MonadSnap m => SSEapp -> m ()
 sseRun (SSEapp app) = do
   request <- Snap.getRequest
   Snap.escapeHttp $ \tickle _ writeEnd -> do
-    print ("escaped" :: Builder)
---     bracket (forkIO (return ())) (killThread) (ping tickle writeEnd)
-    print ("after bracket" :: Builder)
+    pingThreadId <-forkIO (ping tickle writeEnd)
+    sseWrite S.headers writeEnd
+    print ("after headers" :: Builder)
     app writeEnd
     print ("after app" :: Builder)
     Streams.write Nothing writeEnd    
     print ("after Nothing" :: Builder)
+    killThread pingThreadId
 
 sseWrite :: Builder-> SSEstream -> IO ()
 sseWrite x writeEnd = do
-  print ("sseWrite" :: Builder, x)
+  putStrLn ("sseWrite: " <> show x)
   Streams.write (Just x) writeEnd
   Streams.write (Just flush) writeEnd
 
-ping :: Tickle -> SSEstream -> ThreadId -> IO ()  
-ping tickle writeEnd _ = forever $ do
+ping :: Tickle -> SSEstream -> IO ()  
+ping tickle writeEnd = forever $ do
   print ("tickle" :: Builder)
   (Streams.write  (Just ":\n\n")) writeEnd
     `catch` (\(_ :: SomeException) -> return ())
   tickle (max 60)
-  threadDelay (59 * 1000 * 1000)
+  threadDelay (11 * 1000 * 1000)
+
+headers :: Builder
+headers = encodeUtf8Builder [trimming|
+Cache-control: no-cache
+Content-type: text/event-stream
+Connection: keep-alive
+|] <> "\n"
 
 
 

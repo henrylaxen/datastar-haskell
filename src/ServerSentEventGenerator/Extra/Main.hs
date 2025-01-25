@@ -11,12 +11,10 @@ import           Data.Text
 import           Data.Text.Encoding
 import           Data.Time           ( getCurrentTime )
 import qualified HTMLEntities.Text   ( text )
-import           NeatInterpolation   hiding (text)
 import           S
 import           Snap
 import           Snap.Util.FileServe ( serveDirectory )
-
-
+import           Data.ByteString.Builder
 
 -- handlerFeed :: Snap ()
 -- handlerFeed = do
@@ -46,6 +44,7 @@ main = do
     replacement :: Text -> Text
     replacement x = "<pre>" <> HTMLEntities.Text.text x <> "</pre>"
 
+
 site :: Text -> Snap ()
 site index =
     ifTop (writeText index) <|>
@@ -57,7 +56,7 @@ site index =
 handlerFeed :: Snap ()
 handlerFeed = do
   liftIO $ putStrLn "feeding"
-  sseRun f
+  sseRun (SSEapp f)
 
 --   <div data-text="input.value">
 --   <input data-bind-input type="text" />
@@ -66,19 +65,33 @@ handlerFeed = do
 -- data: <div id="feed">XXXXXXXXXXXXXXXXXXXXXXXXX</div>
 
 
-d :: Text
-d = [trimming|
-Cache-control: no-cache
-Content-type: text/event-stream
-Connection: keep-alive
-event: datastar-merge-fragments
-data: fragments <div id="feed">XXXXXXXXXXXXXXXXXXXXXXXXX</div>
-|] <> "\n\n"
+d :: Text -> Text
+d x = "event: datastar-merge-fragments\ndata: fragments " <> x <>   "\n\n"
 
+f :: SSEstream -> IO ()
+f w = do
+  putStrLn "Enter SSEapp"
+  let x10times = [1..10] :: [Int]
+  putStrLn "Write 10 times"
+  mapM_ (const $ writeNow w) x10times
+  putStrLn "Sleep for 70 seconds"
+  threadDelay (70 * 1000 * 1000)
+  putStrLn "Wake up"
+  putStrLn "Write 10 times"
+  mapM_ (const $ writeNow w) x10times
+  putStrLn "All done"
+  
+writeNow :: SSEstream -> IO ()
+writeNow w = do
+  now <- getCurrentTime >>= return . encodeUtf8Builder . Data.Text.pack . show
+  sseWrite (ds now) w
+  threadDelay (1 * 1000 * 1000)
 
-f :: SSEapp
-f = SSEapp (\w -> do
-  print ("In SSEapp" :: Text)
-  sseWrite (encodeUtf8Builder d) w )
-
+ds :: Builder -> Builder
+ds x = mconcat [
+    "event: datastar-merge-fragments\n"
+  , "data: fragments <div id=\"feed\">"
+  , x
+  , "</div>"
+  ] <> "\n\n"
   
