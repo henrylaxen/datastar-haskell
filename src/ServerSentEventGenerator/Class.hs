@@ -49,5 +49,4 @@ instance  ToText Int where
 
 instance  ToText Bool where
   toText True = "true"
-  toText False = "false
-"
+  toText False = "false"

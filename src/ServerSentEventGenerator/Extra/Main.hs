@@ -95,3 +95,12 @@ ds x = mconcat [
   , "</div>"
   ] <> "\n\n"
   
+
+readOde :: IO ()
+readOde = do
+  ode <- Prelude.readFile "www/ode.txt"
+  mapM_ (\x -> pause >> putChar x) ode
+  
+pause :: IO ()
+pause = threadDelay (1 * 100 * 100 `div` 2)
+                    

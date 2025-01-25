@@ -61,13 +61,10 @@ send a b c = liftIO $ sendM (sendPure a b c)
 --   be removed from the output
 
 sendPure :: EventType -> [Text] -> Options -> Text
-sendPure eventType dataLines options = mconcat (buildLines (a:b:c)) <> "\n\n"
+sendPure eventType dataLines options = mconcat (buildLines (a:b:dataLines)) <> "\n\n"
   where
---     withSSEdefault value defaultValue field = if value == defaultValue then mempty
---       else field <> ": " <> toText value
     a = "event: " <> toText eventType
     b = toText options
-    c = map (\x -> cData <> ": " <> toText x) dataLines
 
 {- | >>> :{
 do
@@ -83,22 +80,22 @@ do
   test them
 :}
 event: datastar-merge-fragments
-data: data: fragments line 1
-data: fragments line 2
-<BLANKLINE>
-event: datastar-merge-fragments
-data: data: selector #id
 data: fragments line 1
 data: fragments line 2
 <BLANKLINE>
 event: datastar-merge-fragments
-data: data: selector #id
+data: selector #id
+data: fragments line 1
+data: fragments line 2
+<BLANKLINE>
+event: datastar-merge-fragments
+data: selector #id
 data: mergeMode inner
 data: fragments line 1
 data: fragments line 2
 <BLANKLINE>
 event: datastar-merge-fragments
-data: data: selector #id
+data: selector #id
 data: mergeMode inner
 data: settleDuration 1
 data: fragments line 1
@@ -107,7 +104,7 @@ data: fragments line 2
 event: datastar-merge-fragments
 id: abc123
 retry: 10
-data: data: selector #id
+data: selector #id
 data: mergeMode inner
 data: settleDuration 1
 data: useViewTransition true
@@ -139,21 +136,21 @@ do
 :}
 The selector field is required in RemoveFragment
 event: datastar-remove-fragments
-data: data: selector #id
+data: selector #id
 <BLANKLINE>
 event: datastar-remove-fragments
-data: data: selector #id
+data: selector #id
 data: settleDuration 1
 <BLANKLINE>
 event: datastar-remove-fragments
-data: data: selector #id
+data: selector #id
 data: settleDuration 1
 data: useViewTransition true
 <BLANKLINE>
 event: datastar-remove-fragments
 id: abc123
 retry: 10
-data: data: selector #id
+data: selector #id
 data: settleDuration 1
 <BLANKLINE>
 -}
@@ -180,12 +177,12 @@ do
 :}
 The selector field is required in MergeSignals
 event: datastar-merge-signals
-data: data: signals {"a":"b","c":true,"d":1}
+data: signals {"a":"b","c":true,"d":1}
 <BLANKLINE>
 event: datastar-merge-signals
 id: abc123
 retry: 10
-data: data: signals {"a":"b","c":true,"d":1}
+data: signals {"a":"b","c":true,"d":1}
 data: onlyIfMissing true
 <BLANKLINE>
 -}
@@ -218,14 +215,14 @@ do
 event: datastar-remove-signals
 <BLANKLINE>
 event: datastar-remove-signals
-data: data: datastar-remove-signals velocity.x
+data: datastar-remove-signals velocity.x
 data: datastar-remove-signals velocity.y
 data: datastar-remove-signals position
 <BLANKLINE>
 event: datastar-remove-signals
 id: abc123
 retry: 10
-data: data: datastar-remove-signals velocity.x
+data: datastar-remove-signals velocity.x
 data: datastar-remove-signals velocity.y
 data: datastar-remove-signals position
 <BLANKLINE>
@@ -251,22 +248,22 @@ do
   test them
 :}
 event: datastar-execute-script
-data: data: attributes type module
+data: attributes type module
 <BLANKLINE>
 event: datastar-execute-script
-data: data: datastar-execute-script window.location = "https://data-star.dev"
+data: datastar-execute-script window.location = "https://data-star.dev"
 data: attributes type module
 data: autoRemove false
 <BLANKLINE>
 event: datastar-execute-script
-data: data: datastar-execute-script window.location = "https://data-star.dev"
+data: datastar-execute-script window.location = "https://data-star.dev"
 data: attributes type text/javascript
 data: autoRemove false
 <BLANKLINE>
 event: datastar-execute-script
 id: abc123
 retry: 10
-data: data: datastar-execute-script window.location = "https://data-star.dev"
+data: datastar-execute-script window.location = "https://data-star.dev"
 data: attributes type text/javascript
 <BLANKLINE>
 -}
