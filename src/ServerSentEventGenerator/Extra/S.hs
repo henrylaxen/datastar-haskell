@@ -1,13 +1,14 @@
 module S where
 
-import Data.ByteString
-import Data.ByteString.Builder
-import Snap ( escapeHttp, MonadSnap, getRequest ) 
-import qualified System.IO.Streams as Streams
-    ( OutputStream, write )
-import     Control.Exception
-import  Control.Monad
-import           Control.Concurrent  
+import           Control.Concurrent
+import           Control.Exception
+import           Control.Monad
+import           Data.ByteString
+import           Data.ByteString.Builder
+import           Snap
+import qualified System.IO.Streams       as Streams
+import Data.ByteString.Builder.Extra
+
 type SSEstream = Streams.OutputStream Builder
 
 newtype SSEapp = SSEapp (SSEstream -> IO ())
@@ -18,12 +19,23 @@ sseRun :: MonadSnap m => SSEapp -> m ()
 sseRun (SSEapp app) = do
   request <- Snap.getRequest
   Snap.escapeHttp $ \tickle _ writeEnd -> do
-    bracket (forkIO (return ())) (killThread) (ping tickle writeEnd)
+    print ("escaped" :: Builder)
+--     bracket (forkIO (return ())) (killThread) (ping tickle writeEnd)
+    print ("after bracket" :: Builder)
     app writeEnd
+    print ("after app" :: Builder)
     Streams.write Nothing writeEnd    
+    print ("after Nothing" :: Builder)
+
+sseWrite :: Builder-> SSEstream -> IO ()
+sseWrite x writeEnd = do
+  print ("sseWrite" :: Builder, x)
+  Streams.write (Just x) writeEnd
+  Streams.write (Just flush) writeEnd
 
 ping :: Tickle -> SSEstream -> ThreadId -> IO ()  
 ping tickle writeEnd _ = forever $ do
+  print ("tickle" :: Builder)
   (Streams.write  (Just ":\n\n")) writeEnd
     `catch` (\(_ :: SomeException) -> return ())
   tickle (max 60)
