@@ -1,28 +1,46 @@
-<head>
-  <title>Haskell + Datastar Example</title>
-  <script type="module" src="/datastar.js"></script>
-    <style>.hidden {display:none;}</style>
-</head>
-<body>
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Haskell + Datastar Example</title>
+    <script type="module" src="/datastar.js"></script>
+  </head>
+  <body>
     <h2>Haskell + Datastar Example</h2>
     <main class="container" id="main" >
-    <div> There is an empty div below whose text will be replaced
-          <br/>with the contents of the input signal
-    </div>
-    </div>
-    <div>
+      <div>
+        <b>I suggest you fire up the web server and watch the output
+          written to stdout so you can follow along with what is going on.</b>
+      </div>
       <button data-on-click="@get('/feed')">Feed with morph</button>
-      The current time will be updated below every second
-      <div id="feed">feed goes here</div>
-    </div>
-    <div>
+      <div id="explain">
+        When you click on the "Feed with morph button,
+        <br/>There is an empty div below whose text will be replaced
+        <br/>with the current time 10 times
+        <br/>after that we will sleep for 70 seconds, during which time
+        <br/>the pings will continue so we don't time out. Then we will again
+        <br/>replace the div with the current time 10 times. After that this
+        <br/>text will be removed with a RemoveFragments command
+        <br/>after a "settleDuration" of 5 seconds
+      </div>
+      <br/>
+      <div id="feed"><b>feed goes here</b></div>
+      <br/>
+      <div>
+        When you click the John Keats button, his beautiful
+        <i>Ode to a Nightingale</i>
+        <br/>Will be slowly printed below, as if someone were typing it
+        <br/>on a keyboard.  I am using a &lt;pre&gt; tag, and because I couldn't
+        <br/>figure out how to display leading spaces, I prefixed each
+        <br/>line with a period.  An <i>engineering</i> solution, not a
+        <i>mathematical</i> one.
+      </div>
       <button data-on-click="@get('/keats')">John Keats</button>
-      <pre>
-        <div id="keats"/>
-        keats goes here
-      </pre>
-    </div>
+      <span id="keats"/>
+        <pre>
+          <b>Ode to a Nightingale goes here</b>
+        </pre>
+      </span>
     </main>
     <b>The actual html for this page is written below</b> <replacedByThisPageHere>
-</body>
+  </body>
 </html>

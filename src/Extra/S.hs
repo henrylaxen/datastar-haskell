@@ -27,9 +27,8 @@ sseRun (SSEapp app) = do
     print ("after headers" :: Builder)
     app writeEnd
     print ("after app" :: Builder)
-    Streams.write Nothing writeEnd    
-    print ("after Nothing" :: Builder)
     killThread pingThreadId
+    Streams.write Nothing writeEnd    
 
 sseWrite :: Builder-> SSEstream -> IO ()
 sseWrite x writeEnd = do
@@ -41,9 +40,10 @@ sseWrite x writeEnd = do
 
 ping :: Tickle -> SSEstream -> IO ()  
 ping tickle writeEnd = forever $ do
-  print ("tickle" :: Builder)
+  print ("ping" :: Builder)
   (Streams.write  (Just ":\n\n")) writeEnd
-    `catch` (\(_ :: SomeException) -> return ())
+    `catch` (\(e :: SomeException) -> print e >> return ())
+    -- as near as I can tell, this never triggers
   tickle (max 60)
   threadDelay (11 * 1000 * 1000)
 

@@ -64,30 +64,39 @@ handlerFeed = do
       putStrLn "Enter SSEapp"
       let x10times = [1..10] :: [Int]
       putStrLn "Write 10 times"
-      mapM_ (const $ writeNow w) x10times
-      putStrLn "Sleep for 70 seconds"
-      threadDelay (70 * 1000 * 1000)
+      mapM_ (writeNow w) x10times
+      
+      writeBoth sleeping w
+      sleep 70
       putStrLn "Wake up"
       putStrLn "Write 10 times"
-      mapM_ (const $ writeNow w) x10times
-      putStrLn "All done"
-    writeNow :: SSEstream -> IO ()
-    writeNow w = do
-      now <- getCurrentTime >>= return . encodeUtf8Builder . Data.Text.pack . show
+      mapM_ (writeNow w) x10times
+      
+      writeBoth allDone w
+      sleep 2
+      sseWrite removeDstar w
+    writeNow :: SSEstream -> Int -> IO ()
+    writeNow w n = do
+      now <- getCurrentTime >>=
+        return . encodeUtf8Builder . Data.Text.pack . ((Prelude.replicate n '.') <> ) . show
       sseWrite (feedDstar now) w
       threadDelay (1 * 1000 * 1000)
     feedDstar :: Builder -> Builder
     feedDstar x = mconcat [
         "event: datastar-merge-fragments\n"
-      , "data: mergeMode inner\n"
-      , "data: fragments <div id=\"feed\">"        
-      , "data: fragments <div>"
-      , x
-      , "</div>"
+      , "data: fragments <div id=\"feed\">"
+      , "<b>" <> x <> "</b>"
       ] <> "\n\n"
---      , "data: fragments <div id=\"feed\">"
-
-      
+    writeBoth x w = putStrLn x >> sseWrite (feedDstar (stringUtf8 x)) w
+    removeDstar :: Builder
+    removeDstar = mconcat [
+        "event: datastar-remove-fragments\n"
+      , "data: selector #explain\n"
+      , "data: settleDuration 5000\n"
+      , "data: useViewTransition true"
+      ] <> "\n\n"            
+    sleeping = "Sleeping for 70 seconds, but continuing to ping"
+    allDone  = "All Done"
 
 handlerKeats :: Snap ()
 handlerKeats = do
@@ -98,8 +107,6 @@ handlerKeats = do
   where
     f :: String -> SSEstream -> IO ()
     f ode w = do
---      return ()
---      mapM_ (\x -> sseWrite (keatsDstar (charUtf8 x)) w >> pause) ode
       singleThreaded $ foldM_ (\x -> foldSlowly w x) mempty ode
     keatsDstar :: String -> String
     keatsDstar x = mconcat [
@@ -112,35 +119,25 @@ handlerKeats = do
       ] <> "\n\n"
     foldSlowly :: SSEstream -> String ->  Char -> IO String
     foldSlowly w b c = do
---      pause
+      pause
       let s = b <> [c]
       sseWrite (stringUtf8 . keatsDstar $ s) w
       return s
 
 pause :: IO ()
 pause = threadDelay (10 * 100 * 100 `div` 2)
-                    
--- foldM_  :: (Foldable t, Monad m) => (b -> a -> m b) -> b -> t a -> m ()
 
-
-
--- w ::  SSEstream
--- w = undefined
--- keatsDstar :: Builder -> Builder
--- keatsDstar = id
+sleep :: Int -> IO ()
+sleep n = threadDelay (n * 1000 * 1000)
 
 singleThreaded :: IO a -> IO a
-singleThreaded action = bracket 
-    (newMVar ()) 
-    (\mvar -> takeMVar mvar) 
+singleThreaded action = bracket
+    (newMVar ())
+    (\mvar -> takeMVar mvar)
     (\_ -> action)
 
 toPre :: String -> String
 toPre = mconcat . Prelude.map oneLine . Prelude.lines
   where
    oneLine x = "data: fragments ." <> x <> "\n"
---    addDot (x:xs) = if x == ' '
---      then ('.' : x : xs)
---      else (x:xs)
 
-    
