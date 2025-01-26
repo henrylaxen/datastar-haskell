@@ -11,12 +11,16 @@
     </div>
     </div>
     <div>
-      <button data-on-click="@get('/feed')">Start Feed</button>
-      The current time will be updated below every 2 seconds
+      <button data-on-click="@get('/feed')">Feed with morph</button>
+      The current time will be updated below every second
       <div id="feed">feed goes here</div>
     </div>
-    <div>There is a hidden button below that will appear as soon
-         <br/>as text is written into the text box above
+    <div>
+      <button data-on-click="@get('/keats')">John Keats</button>
+      <pre>
+        <div id="keats"/>
+        keats goes here
+      </pre>
     </div>
     </main>
     <b>The actual html for this page is written below</b> <replacedByThisPageHere>

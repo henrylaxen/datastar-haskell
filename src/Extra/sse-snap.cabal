@@ -36,6 +36,7 @@ common deps
     , neat-interpolation
     , text
     , time
+    , utf8-string
 --       , data-default
 --       , extra
 --       , neat-interpolation

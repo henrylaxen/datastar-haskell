@@ -3,13 +3,14 @@ module S where
 import           Control.Concurrent
 import           Control.Exception
 import           Control.Monad
-import           Data.ByteString
+import           Data.ByteString.Lazy
 import           Data.ByteString.Builder
 import           Snap hiding ( headers )
 import qualified System.IO.Streams       as Streams
 import Data.ByteString.Builder.Extra
 import           Data.Text.Encoding
 import           NeatInterpolation   hiding (text)
+import           Codec.Binary.UTF8.String
 
 type SSEstream = Streams.OutputStream Builder
 
@@ -19,7 +20,7 @@ type Tickle = (Int -> Int) -> IO ()
 
 sseRun :: MonadSnap m => SSEapp -> m ()
 sseRun (SSEapp app) = do
-  request <- Snap.getRequest
+  -- request <- Snap.getRequest
   Snap.escapeHttp $ \tickle _ writeEnd -> do
     pingThreadId <-forkIO (ping tickle writeEnd)
     sseWrite S.headers writeEnd
@@ -32,7 +33,9 @@ sseRun (SSEapp app) = do
 
 sseWrite :: Builder-> SSEstream -> IO ()
 sseWrite x writeEnd = do
-  putStrLn ("sseWrite: " <> show x)
+--   let s = Data.Text.unpack .decodeUtf8 . toLazyByteString $ x
+  let s = decode . unpack . toLazyByteString $ x
+  putStrLn ("sseWrite: " <> s)
   Streams.write (Just x) writeEnd
   Streams.write (Just flush) writeEnd
 
