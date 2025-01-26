@@ -15,4 +15,4 @@ clean:
 	pushd  $(BASE) ; rm -rf dist-newstyle ; popd
 .PHONY:
 tags:
-	pushd  $(BASE)/src ; find . -name "*.hs" | xargs ghc-tags --etags -f TAGS ; popd
+	pushd  $(BASE)/src ; find . -name "*.hs" | grep -v "dist-newstyle" | xargs ghc-tags --etags -f TAGS ; popd

@@ -1,173 +1,100 @@
-module S where
+module S (
+    SSEstream
+  , SSEapp (..)
+  , Tickle
+  , sseRun
+  , sseWrite
+  ) where
 
+import           Codec.Binary.UTF8.String
 import           Control.Concurrent
 import           Control.Exception
 import           Control.Monad
-import           Data.ByteString.Lazy
 import           Data.ByteString.Builder
-import           Snap hiding ( headers )
-import qualified System.IO.Streams       as Streams
-import Data.ByteString.Builder.Extra
-import           Data.Text.Encoding
-import           NeatInterpolation   hiding (text)
-import           Codec.Binary.UTF8.String
+import           Data.ByteString.Builder.Extra
+import           Data.ByteString.Lazy
+import           Snap                          hiding ( headers )
+import qualified System.IO.Streams             as Streams
+import           Threading
 
 type SSEstream = Streams.OutputStream Builder
 
-newtype SSEapp = SSEapp (SSEstream -> IO ())
+data SSEapp = SSEapp (MVar () -> SSEstream -> IO ())
+
+-- putBoth :: Builder -> Streams.OutputStream Builder -> IO ()
 
 type Tickle = (Int -> Int) -> IO ()
 
-sseRun :: MonadSnap m => SSEapp -> m ()
-sseRun (SSEapp app) = do
-  -- request <- Snap.getRequest
+sseRun :: MonadSnap m => SSEapp -> m () 
+sseRun (SSEapp app) = do -- app :: (MVar () -> SSEstream -> IO ())
+  request <- Snap.getRequest
+  let lastId = getHeader "Last-Event-ID" request
   Snap.escapeHttp $ \tickle _ writeEnd -> do
-    pingThreadId <-forkIO (ping tickle writeEnd)
-    sseWrite S.headers writeEnd
-    print ("after headers" :: Builder)
-    app writeEnd
-    print ("after app" :: Builder)
-    killThread pingThreadId
-    Streams.write Nothing writeEnd    
+--   Snap.escapeHttp $ \tickle _ writeEnd -> 
+--     bracket
+--       (newMVar ())
+--       (\mvar -> putMVar mvar ())
+--       (runWith tickle lastId writeEnd)
+--   where
+--     runWith tickle lastId writeEnd mVar  = do
+      mVar <- newMVar ()
+      takeMVar mVar 
+      putStrLn ("Last-Event-ID: " <> show lastId)
+      pingThreadId <-forkIO (ping mVar tickle writeEnd)
+      handle (handleException pingThreadId "sseRun") $ do
+        putMVar mVar ()
+        Streams.write (Just headers) writeEnd
+        Streams.write (Just flush) writeEnd
+        putStrLn "enter app"
+        putMVar mVar ()
+--         app mVar writeEnd
+        void $ takeMVar mVar
+        putStrLn "exit app"
+        killThread pingThreadId
+        putStrLn "killing ping thread"
+        Streams.write Nothing writeEnd
+        putStrLn "sseRun done"
+  where
+    headers :: Builder
+    headers = "Cache-control: no-cache\nContent-type: text/event-stream\nConnection: keep-alive\n"
+       
+sseWrite :: MVar () -> Builder-> SSEstream -> IO ()
+sseWrite mVar x writeEnd = do
+--   bracket
+--     (newMVar ())
+--     (\mvar -> putMVar mvar ())
+--     (runPing)
+--   where
+--     runPing mVar  = do
+      let s = decode . unpack . toLazyByteString $ x
+      void $ takeMVar mVar
+      putStrLn ("sseWrite: " <> s)
+      Streams.write (Just x) writeEnd
+      Streams.write (Just flush) writeEnd
 
-sseWrite :: Builder-> SSEstream -> IO ()
-sseWrite x writeEnd = do
---   let s = Data.Text.unpack .decodeUtf8 . toLazyByteString $ x
-  let s = decode . unpack . toLazyByteString $ x
-  putStrLn ("sseWrite: " <> s)
-  Streams.write (Just x) writeEnd
-  Streams.write (Just flush) writeEnd
-
-ping :: Tickle -> SSEstream -> IO ()  
-ping tickle writeEnd = forever $ do
-  print ("ping" :: Builder)
-  (Streams.write  (Just ":\n\n")) writeEnd
-    `catch` (\(e :: SomeException) -> print e >> return ())
-    -- as near as I can tell, this never triggers
+ping :: MVar () -> Tickle -> SSEstream -> IO ()
+ping mVar tickle writeEnd = forever $ do
+  pingThreadId <- myThreadId
+  takeMVar mVar 
+  putSingle mVar ("PING: " <> show pingThreadId)
+  handle (handleException pingThreadId "ping") $ do
+    Streams.write  (Just ":\n\n") writeEnd
+    Streams.write  (Just flush) writeEnd
   tickle (max 60)
+  putMVar mVar ()
   threadDelay (11 * 1000 * 1000)
 
-headers :: Builder
-headers = encodeUtf8Builder [trimming|
-Cache-control: no-cache
-Content-type: text/event-stream
-Connection: keep-alive
-|] <> "\n"
+
+handleException :: ThreadId -> String -> SomeException -> IO ()
+handleException t s e = do
+  killThread t
+  putStrLn (s <> ": " <> displayException e)
+  throwIO e
 
 
+-- bracket
+-- :: IO a         computation to run first ("acquire resource")
+-- -> (a -> IO b)  computation to run last  ("release resource")
+-- -> (a -> IO c)  computation to run in-between
+-- -> IO c	 
 
--- ping :: Tickle -> SSEstream -> ThreadId -> IO ()
--- ping = undefined
-
--- type EscapeHttpHandler
---  = ((Int -> Int) -> IO ())	
-
--- timeout modifier
--- -> InputStream ByteString	
-
--- socket read end
--- -> OutputStream Builder	
-
--- socket write end
--- -> IO ()
-
--- sseOpen :: MonadSnap m => (SSEstream -> IO ()) -> m ()
--- sseOpen f = do
---   escapeHttp $ \tickle _ writeEnd -> do
---     tickle (max (60*60))
---     Streams.write (Just (lazyByteString sseHeaders)) writeEnd
---     f writeEnd
--- sseWrite :: MonadIO m => SSEstream -> DsString -> m ()
--- sseWrite writeEnd dsStr = liftIO $ do
---   Streams.write (Just (lazyByteString dsStr)) writeEnd
---   Streams.write (Just flush) writeEnd
--- sseClose :: MonadIO m => SSEstream -> m ()
--- sseClose writeEnd = liftIO $ Streams.write Nothing writeEnd
-
-
-
--- | Start a ping thread in the background
--- forkPingThread :: ((Int -> Int) -> IO ()) -> IORef Bool -> SSEstream -> IO ()
--- forkPingThread tickle done conn = do
---     _ <- forkIO pingThread
---     return ()
---   where
---     pingThread = handle ignore $
---         let loop = do
---                 d <- readIORef done
---                 unless d $ do
---                     WS.sendPing conn (BC.pack "ping")
---                     tickle (max 60)
---                     threadDelay $ 10 * 1000 * 1000
---                     loop in
---         loop
-
---     ignore :: SomeException -> IO ()
---     ignore _   = return ()
-
---------------------------------------------------------------------------------
--- | This datatype allows you to set options for 'acceptRequestWith'.  It is
--- strongly recommended to use 'defaultAcceptRequest' and then modify the
--- various fields, that way new fields introduced in the library do not break
--- your code.
--- data AcceptRequest = AcceptRequest
---     { acceptSubprotocol :: !(Maybe B.ByteString)
---     -- ^ The subprotocol to speak with the client.  If 'pendingSubprotcols' is
---     -- non-empty, 'acceptSubprotocol' must be one of the subprotocols from the
---     -- list.
---     , acceptHeaders     :: !Headers
---     -- ^ Extra headers to send with the response.
---     }
-
-
---------------------------------------------------------------------------------
--- defaultAcceptRequest :: AcceptRequest
--- defaultAcceptRequest = AcceptRequest Nothing []
-
-
--- data PendingConnection = PendingConnection
---     { pendingOptions  :: !ConnectionOptions
---     -- ^ Options, passed as-is to the 'Connection'
---     , pendingRequest  :: !RequestHead
---     -- ^ Useful for e.g. inspecting the request path.
---     , pendingOnAccept :: !(Connection -> IO ())
---     -- ^ One-shot callback fired when a connection is accepted, i.e., *after*
---     -- the accepting response is sent to the client.
---     , pendingStream   :: !Stream
---     -- ^ Input/output stream
---     }
-
-
--- type ServerApp = PendingConnection -> IO ()
-
--- runWebSocketsSnapWith
---   :: Snap.MonadSnap m
---   => WS.ConnectionOptions
---   -> WS.ServerApp
---   -> m ()
--- runWebSocketsSnapWith options app = do
---   rq <- Snap.getRequest
---   Snap.escapeHttp $ \tickle readEnd writeEnd -> do
-
---     thisThread <- myThreadId
---     stream <- WS.makeStream (Streams.read readEnd)
---               (\v -> do
---                   Streams.write (fmap BSBuilder.lazyByteString v) writeEnd
---                   Streams.write (Just BSBuilder.flush) writeEnd
---               )
-
---     done <- newIORef False
-
---     let options' = options
---                    { WS.connectionOnPong = do
---                         tickle (max 45)
---                         WS.connectionOnPong options
---                    }
-
---         pc = WS.PendingConnection
---                { WS.pendingOptions  = options'
---                , WS.pendingRequest  = fromSnapRequest rq
---                , WS.pendingOnAccept = forkPingThread tickle done
---                , WS.pendingStream   = stream
---                }
---     (app pc >> throwTo thisThread ServerAppDone) `finally` writeIORef done True

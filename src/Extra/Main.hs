@@ -3,7 +3,6 @@ module Main where
 
 import           Control.Applicative
 import           Control.Concurrent
-import           Control.Exception
 import           Control.Monad.IO.Class
 import           Control.Monad
 import           Data.ByteString
@@ -16,23 +15,13 @@ import           S
 import           Snap
 import           Snap.Util.FileServe ( serveDirectory )
 import           Data.ByteString.Builder
-
--- handlerFeed :: Snap ()
--- handlerFeed = do
---   sseOpen loop
---   where
---     timeNow :: DsString -> DsString
---     timeNow x = [i|<div id="feed">The time is: ${x}</div>|]
---     loop :: SSEstream -> IO ()Luc
---     loop sseStream = do
---       now <- (encodeUtf8 :: Text -> DsString)  . show <$> liftIO getCurrentTime
---       let dsStr = makeDatastar MergeFragments [timeNow now] Nothing
---       sseWrite sseStream dsStr
---       threadDelay 2000000
---       loop sseStream
+import           System.IO
+import           Threading
 
 main :: IO ()
 main = do
+  hSetBuffering stdout NoBuffering
+  hSetBuffering stderr NoBuffering
   indexFile <- decodeUtf8 <$> Data.ByteString.readFile "www/index.html"
   let
     indexText = replace "<replacedByThisPageHere>" (replacement indexFile) indexFile
@@ -56,38 +45,40 @@ site indexText =
 
 handlerFeed :: Snap ()
 handlerFeed = do
-  liftIO $ putStrLn "feeding"
-  sseRun (SSEapp f)
+  liftIO $ putStrLn "handlerFeed"
+  mVar <- liftIO (newMVar ())
+  sseRun (SSEapp mVar feedApp)
+
+feedApp :: MVar () -> SSEstream -> IO ()
+feedApp mVar w = do
+  putStrLn "feedApp "
+  isEmptyMVar mVar >>= print
+  putSingle mVar "Enter SSEapp"
+  let x10times = [1..10] :: [Int]
+  putSingle mVar "Write 10 times"
+  mapM_ writeNow x10times
+  writeBoth sleeping
+  sleep 70
+  putSingle mVar "Wake up"
+  putSingle mVar "Write 10 times"
+  mapM_ writeNow x10times
+  writeBoth allDone
+  sleep 2
+  sseWrite mVar removeDstar w
   where
-    f :: SSEstream -> IO ()
-    f w = do
-      putStrLn "Enter SSEapp"
-      let x10times = [1..10] :: [Int]
-      putStrLn "Write 10 times"
-      mapM_ (writeNow w) x10times
-      
-      writeBoth sleeping w
-      sleep 70
-      putStrLn "Wake up"
-      putStrLn "Write 10 times"
-      mapM_ (writeNow w) x10times
-      
-      writeBoth allDone w
-      sleep 2
-      sseWrite removeDstar w
-    writeNow :: SSEstream -> Int -> IO ()
-    writeNow w n = do
+    writeNow :: Int -> IO ()
+    writeNow n = do
       now <- getCurrentTime >>=
         return . encodeUtf8Builder . Data.Text.pack . ((Prelude.replicate n '.') <> ) . show
-      sseWrite (feedDstar now) w
-      threadDelay (1 * 1000 * 1000)
+      sseWrite mVar (feedDstar now) w
+      sleep 1
     feedDstar :: Builder -> Builder
     feedDstar x = mconcat [
         "event: datastar-merge-fragments\n"
       , "data: fragments <div id=\"feed\">"
       , "<b>" <> x <> "</b>"
       ] <> "\n\n"
-    writeBoth x w = putStrLn x >> sseWrite (feedDstar (stringUtf8 x)) w
+    writeBoth x = putSingle mVar x >> sseWrite mVar (feedDstar (stringUtf8 x)) w
     removeDstar :: Builder
     removeDstar = mconcat [
         "event: datastar-remove-fragments\n"
@@ -100,14 +91,14 @@ handlerFeed = do
 
 handlerKeats :: Snap ()
 handlerKeats = do
-  liftIO $ putStrLn "Keats"
+  liftIO $ putStrLn "handlerKeats"
   ode <-liftIO $  Prelude.readFile "www/keats.txt"
 --  let ode = "abc" :: String
   sseRun (SSEapp (f ode))
   where
-    f :: String -> SSEstream -> IO ()
-    f ode w = do
-      singleThreaded $ foldM_ (\x -> foldSlowly w x) mempty ode
+    f :: String -> MVar () -> SSEstream -> IO ()
+    f ode mVar w = do
+      foldM_ (\x -> foldSlowly mVar w x) mempty ode
     keatsDstar :: String -> String
     keatsDstar x = mconcat [
         "event: datastar-merge-fragments\n"
@@ -117,11 +108,11 @@ handlerKeats = do
       , toPre x
       , "</pre>"
       ] <> "\n\n"
-    foldSlowly :: SSEstream -> String ->  Char -> IO String
-    foldSlowly w b c = do
+    foldSlowly :: MVar () -> SSEstream -> String ->  Char -> IO String
+    foldSlowly mVar w b c = do
       pause
       let s = b <> [c]
-      sseWrite (stringUtf8 . keatsDstar $ s) w
+      sseWrite mVar (stringUtf8 . keatsDstar $ s) w
       return s
 
 pause :: IO ()
@@ -129,12 +120,6 @@ pause = threadDelay (10 * 100 * 100 `div` 2)
 
 sleep :: Int -> IO ()
 sleep n = threadDelay (n * 1000 * 1000)
-
-singleThreaded :: IO a -> IO a
-singleThreaded action = bracket
-    (newMVar ())
-    (\mvar -> takeMVar mvar)
-    (\_ -> action)
 
 toPre :: String -> String
 toPre = mconcat . Prelude.map oneLine . Prelude.lines
