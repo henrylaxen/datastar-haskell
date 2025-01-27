@@ -13,17 +13,15 @@ import qualified HTMLEntities.Text   ( text )
 import           Snap
 import           Snap.Util.FileServe ( serveDirectory )
 import           Data.ByteString.Builder
-import           System.IO
-import ServerSentEventGenerator.Internal
-import ServerSentEventGenerator.Types
+import           System.IO hiding (putStr)
+import ServerSentEventGenerator
 import SnapDemo
-import System.Directory
+import Data.Default
 
 main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
   hSetBuffering stderr NoBuffering
-  getCurrentDirectory >>= print
   indexFile <- decodeUtf8 <$> Data.ByteString.readFile "src/demo/www/index.html"
   let
     indexText = replace "<replacedByThisPageHere>" (replacement indexFile) indexFile
@@ -56,7 +54,7 @@ handlerFeed = do
       let x10times = [1..10] :: [Int]
       putStrLn "Write 10 times"
       mapM_ (writeNow w) x10times
-      
+
       writeBoth sleeping w
       sleep 70
       putStrLn "Wake up"
@@ -88,6 +86,10 @@ handlerFeed = do
       ] <> "\n\n"            
     sleeping = "Sleeping for 70 seconds, but continuing to ping"
     allDone  = "All Done"
+
+
+xfeedDstar x = mergeFragments ["<b>" <> x <> "</b>"] def def def def 
+
 
 handlerKeats :: Snap ()
 handlerKeats = do

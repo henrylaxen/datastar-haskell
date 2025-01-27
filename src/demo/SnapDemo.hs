@@ -13,7 +13,7 @@ import Data.ByteString.Builder.Extra
 -- import           NeatInterpolation   hiding (text)
 import           Codec.Binary.UTF8.String
 import           ServerSentEventGenerator
-import           ServerSentEventGenerator.Types
+-- import           ServerSentEventGenerator.Types
 
 
 type Tickle = (Int -> Int) -> IO ()

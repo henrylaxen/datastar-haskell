@@ -6,11 +6,14 @@ module ServerSentEventGenerator  (
   , FragmentOptions(..)
   , EventType(..)
   , MergeMode(..)
+  , SSEstream
+  , SSEapp(..)
   , mergeFragments
   , removeFragments
   , mergeSignals
   , removeSignals
   , executeScript
+  , singleThreaded
   , sseHeaders
   , sendPure
   , send
