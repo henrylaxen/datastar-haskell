@@ -29,11 +29,11 @@ common deps
         base
       , bytestring
       , data-default
-      , neat-interpolation
       , io-streams
+      , neat-interpolation
+      , template-haskell
       , text
       , utf8-string
-      , template-haskell
 
 common default-extensions
   default-extensions:
@@ -62,15 +62,10 @@ Executable datastar-demo
   import:  deps,warnings,default-extensions
   default-language: Haskell2010
   build-depends:
-      base
     , snap
     , snap-core
-    , bytestring
     , html-entities
-    , text
     , time
-    , utf8-string
-
   other-modules:
         ServerSentEventGenerator
       , ServerSentEventGenerator.Class

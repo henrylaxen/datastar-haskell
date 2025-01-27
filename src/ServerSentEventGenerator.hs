@@ -26,6 +26,7 @@ import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Constants
 import ServerSentEventGenerator.Internal
 import ServerSentEventGenerator.Types
+import Data.ByteString.Builder ( Builder )
 
 -- $setup
 -- >>> import Data.Functor.Identity
@@ -45,7 +46,7 @@ import ServerSentEventGenerator.Types
 -- >>> runIdentity $ sseHeaders
 -- "Cache-control: no-cache\nContent-type: text/event-stream\nConnection: keep-alive\n"
 
-sseHeaders :: HttpVersion m => m Text
+sseHeaders :: HttpVersion m => m Builder
 sseHeaders = do
   b <- isHttpVersion1_1
   return $ if b then sseHeaders1_1 else sseHeaders2

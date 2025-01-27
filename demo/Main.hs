@@ -1,9 +1,7 @@
 module Main where
 
-
 import           Control.Applicative
 import           Control.Concurrent
--- import           Control.Exception
 import           Control.Monad.IO.Class
 import           Control.Monad
 import           Data.ByteString
@@ -17,8 +15,6 @@ import           Snap.Util.FileServe ( serveDirectory )
 import           Data.ByteString.Builder
 import           System.IO
 import ServerSentEventGenerator.Internal
--- import ServerSentEventGenerator.Class
--- import ServerSentEventGenerator.Constants
 import ServerSentEventGenerator.Types
 import SnapDemo
 

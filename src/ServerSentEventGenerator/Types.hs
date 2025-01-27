@@ -35,7 +35,6 @@ instance ToText Options where
       b = withSSEdefault  (retryDuration options) cDefaultSseRetryDurationMs cRetryDuration
     in mconcat . buildLines $ [a,b]
 
-
 newtype Selector = SEL {unSelector :: Text}
   deriving (Show, Semigroup, Monoid, Eq)
 
