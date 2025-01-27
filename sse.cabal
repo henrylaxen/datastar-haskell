@@ -73,6 +73,6 @@ Executable datastar-demo
       , ServerSentEventGenerator.Types
       , ServerSentEventGenerator.Internal
       , SnapDemo
-  hs-source-dirs: src,demo
+  hs-source-dirs: src,src/demo
   main-is: Main.hs
     
