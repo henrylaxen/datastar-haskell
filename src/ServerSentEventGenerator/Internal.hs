@@ -67,15 +67,15 @@ sendM b = singleThreaded (sse b)
 singleThreaded :: IO a -> IO a
 singleThreaded action = bracket 
     (newMVar ()) 
-    (\mvar -> takeMVar mvar) 
-    (\_ -> action)
+    (\mvar -> takeMVar mvar)
+    (\mvar -> action >>= (\a -> putMVar mvar () >> return a))
 
 test :: [Text] -> IO ()
 test = mapM_ sendM
 
-rr :: String -> Int -> IO ()
-rr x n = do
-  let a = Prelude.concatMap (\y -> ("," <> x <> show y) ) [1 .. n]
-  putStr . Prelude.drop 1 $ a
-  putStrLn " :: Text"
-  putStrLn (x <> " :: IO ()")
+-- rr :: String -> Int -> IO ()
+-- rr x n = do
+--   let a = Prelude.concatMap (\y -> ("," <> x <> show y) ) [1 .. n]
+--   putStr . Prelude.drop 1 $ a
+--   putStrLn " :: Text"
+--   putStrLn (x <> " :: IO ()")

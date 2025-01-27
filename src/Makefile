@@ -16,3 +16,7 @@ clean:
 .PHONY:
 tags:
 	pushd  $(BASE)/src ; find . -name "*.hs" | xargs ghc-tags --etags -f TAGS ; popd
+.PHONY:
+run:
+	pushd  $(BASE) ; cabal run 2>&1 | tee /tmp/sse.log ; popd
+

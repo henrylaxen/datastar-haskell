@@ -17,13 +17,14 @@ import           System.IO
 import ServerSentEventGenerator.Internal
 import ServerSentEventGenerator.Types
 import SnapDemo
-
+import System.Directory
 
 main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
   hSetBuffering stderr NoBuffering
-  indexFile <- decodeUtf8 <$> Data.ByteString.readFile "demo/www/index.html"
+  getCurrentDirectory >>= print
+  indexFile <- decodeUtf8 <$> Data.ByteString.readFile "src/demo/www/index.html"
   let
     indexText = replace "<replacedByThisPageHere>" (replacement indexFile) indexFile
     mbPort    = getPort (defaultConfig :: Config Snap a)
@@ -42,7 +43,7 @@ site indexText =
         ("favicon.ico" , return ())
       , ("feed"        , handlerFeed)
       , ("keats"       , handlerKeats)
-      ] <|> serveDirectory "www"
+      ] <|> serveDirectory "src/demo/www"
 
 handlerFeed :: Snap ()
 handlerFeed = do
@@ -91,7 +92,7 @@ handlerFeed = do
 handlerKeats :: Snap ()
 handlerKeats = do
   liftIO $ putStrLn "Keats"
-  ode <-liftIO $  Prelude.readFile "www/keats.txt"
+  ode <-liftIO $  Prelude.readFile "src/demo/www/keats.txt"
 --  let ode = "abc" :: String
   sseRun (SSEapp (f ode))
   where
