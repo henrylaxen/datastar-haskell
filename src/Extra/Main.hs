@@ -16,23 +16,12 @@ import           S
 import           Snap
 import           Snap.Util.FileServe ( serveDirectory )
 import           Data.ByteString.Builder
-
--- handlerFeed :: Snap ()
--- handlerFeed = do
---   sseOpen loop
---   where
---     timeNow :: DsString -> DsString
---     timeNow x = [i|<div id="feed">The time is: ${x}</div>|]
---     loop :: SSEstream -> IO ()Luc
---     loop sseStream = do
---       now <- (encodeUtf8 :: Text -> DsString)  . show <$> liftIO getCurrentTime
---       let dsStr = makeDatastar MergeFragments [timeNow now] Nothing
---       sseWrite sseStream dsStr
---       threadDelay 2000000
---       loop sseStream
+import           System.IO
 
 main :: IO ()
 main = do
+  hSetBuffering stdout NoBuffering
+  hSetBuffering stderr NoBuffering
   indexFile <- decodeUtf8 <$> Data.ByteString.readFile "www/index.html"
   let
     indexText = replace "<replacedByThisPageHere>" (replacement indexFile) indexFile
