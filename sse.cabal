@@ -28,6 +28,7 @@ common deps
   build-depends:
         base
       , bytestring
+      , containers
       , data-default
       , io-streams
       , neat-interpolation
@@ -62,7 +63,8 @@ Executable datastar-demo
   import:  deps,warnings,default-extensions
   default-language: Haskell2010
   build-depends:
-      snap
+      aeson
+    , snap
     , snap-core
     , html-entities
     , time

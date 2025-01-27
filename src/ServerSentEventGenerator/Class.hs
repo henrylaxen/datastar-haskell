@@ -31,13 +31,6 @@ instance SSE IO where
   -- | Could be handy for debugging
   sse = Data.Text.IO.putStr
 
--- | A handy little helper to watch the result of sending stuff through sse
-watch ::  Text -> ()
-watch x = runIdentity (sse x)
-
--- class Monad m => ReadSignals m where
---   r ::
-
 class ToText a where
   toText :: a -> Text
 
