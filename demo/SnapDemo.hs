@@ -1,20 +1,20 @@
-module S where
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+module SnapDemo where
 
 import           Control.Concurrent
 import           Control.Exception
 import           Control.Monad
 import           Data.ByteString.Lazy
 import           Data.ByteString.Builder
-import           Snap hiding ( headers )
+import           Snap hiding ( headers, HttpVersion )
 import qualified System.IO.Streams       as Streams
 import Data.ByteString.Builder.Extra
-import           Data.Text.Encoding
-import           NeatInterpolation   hiding (text)
+-- import           Data.Text.Encoding
+-- import           NeatInterpolation   hiding (text)
 import           Codec.Binary.UTF8.String
+import           ServerSentEventGenerator.Class
+import           ServerSentEventGenerator.Types
 
-type SSEstream = Streams.OutputStream Builder
-
-newtype SSEapp = SSEapp (SSEstream -> IO ())
 
 type Tickle = (Int -> Int) -> IO ()
 
@@ -23,7 +23,6 @@ sseRun (SSEapp app) = do
   -- request <- Snap.getRequest
   Snap.escapeHttp $ \tickle _ writeEnd -> do
     pingThreadId <-forkIO (ping tickle writeEnd)
-    sseWrite S.headers writeEnd
     print ("after headers" :: Builder)
     app writeEnd
     print ("after app" :: Builder)
@@ -46,6 +45,11 @@ ping tickle writeEnd = forever $ do
     -- as near as I can tell, this never triggers
   tickle (max 60)
   threadDelay (11 * 1000 * 1000)
+
+instance HttpVersion Snap  where
+  isHttpVersion1_1 = do
+    version <- rqVersion <$>getRequest
+    return (version == (1,1))
 
 -- headers :: Builder
 -- headers = encodeUtf8Builder [trimming|

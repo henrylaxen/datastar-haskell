@@ -70,8 +70,6 @@ singleThreaded action = bracket
     (\mvar -> takeMVar mvar) 
     (\_ -> action)
 
-
-
 test :: [Text] -> IO ()
 test = mapM_ sendM
 

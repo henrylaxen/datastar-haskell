@@ -11,7 +11,7 @@ maintainer:         nadine.and.henry@pobox.com
 category:           Language
 build-type:         Simple
 extra-doc-files:    CHANGELOG.md
-documentation:      True
+documentation:      False
 
 common warnings
   ghc-options:
@@ -29,8 +29,8 @@ common deps
         base
       , bytestring
       , data-default
-      , extra
       , neat-interpolation
+      , io-streams
       , text
       , utf8-string
       , template-haskell
@@ -56,3 +56,28 @@ library
         ServerSentEventGenerator.Internal
     hs-source-dirs:   src
     default-language: Haskell2010
+
+
+Executable datastar-demo
+  import:  deps,warnings,default-extensions
+  default-language: Haskell2010
+  build-depends:
+      base
+    , snap
+    , snap-core
+    , bytestring
+    , html-entities
+    , text
+    , time
+    , utf8-string
+
+  other-modules:
+        ServerSentEventGenerator
+      , ServerSentEventGenerator.Class
+      , ServerSentEventGenerator.Constants
+      , ServerSentEventGenerator.Types
+      , ServerSentEventGenerator.Internal
+      , SnapDemo
+  hs-source-dirs: src,demo
+  main-is: Main.hs
+    
