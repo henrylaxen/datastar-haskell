@@ -31,7 +31,8 @@ streaming SSE events to the browser work.
 The code itself is extensively documented, with many doctest examples
 that show up in the Haddock files.
 
-  Best wishes,
-  Henry Laxen
-  nadine.and.henry@pobox.com
-  http://nadineloveshenry.com/
+Best wishes,  
+Henry Laxen  
+nadine.and.henry@pobox.com  
+http://nadineloveshenry.com/  
+
