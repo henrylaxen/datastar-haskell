@@ -33,9 +33,6 @@ type Tickle = (Int -> Int) -> IO ()
 debug :: Bool
 debug = False
 
-instance SSE Snap where
-  sse txt = 
-
 ps :: String -> IO ()
 ps x = if debug then putStrLn x else return ()
 

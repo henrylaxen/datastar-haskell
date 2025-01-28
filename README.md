@@ -9,11 +9,12 @@ specified in the Datastar sdK
     mergeSignals    :: Text -> Bool -> Options -> Text
     removeSignals   :: [Text] -> Options -> Text
     executeScript   ::  [Text] -> [Text] -> Bool -> Options -> Text
+    send :: Text -> Client is **Not** defined
 
-additionally you, dear user, will need to implement the web server
-dependent function sse :: Text -> m () where m will depend on your web
-server. I have included a sample implementation for the Snap server, 
-in the SnapSSE module, please have a look at it.
+additionally you, dear user, will need to implement a web server
+dependent function sends the text you created to the client. I have
+included a sample implementation for the Snap server, in the SnapSSE
+module, please have a look at it.
 
 You will notice a Bool named debug, which is currently set to False.
 Setting it to True will enable debug messages printed to stdout so

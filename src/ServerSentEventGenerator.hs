@@ -24,12 +24,11 @@ module ServerSentEventGenerator  (
   -- $setup
   ) where
 
-import Control.Monad.IO.Class ( MonadIO(..) )
 import Data.ByteString.Builder ( Builder )
 import Data.Default ( Default(..) )
 import Data.Text ( Text )
 import ServerSentEventGenerator.Class
-    ( ToText(..), SSE, HttpVersion(..), sse )
+    ( ToText(..), SSE, HttpVersion(..) )
 import ServerSentEventGenerator.Constants
 import ServerSentEventGenerator.Internal
     ( buildLines, withDefault, withList, sendM, singleThreaded, test )
@@ -76,8 +75,8 @@ sseHeaders = do
 -- | Send is supposed to send a unit of text to the client.  Unfortunately, I
 --   don't know how to do this in a server independent way. 
 
-send :: Text -> IO ()
-send = error "not implemented, please see sseSend in SnamSSE for ideas"
+-- send :: Text -> IO ()
+-- send = error "not implemented, please see sseSend in SnamSSE for ideas"
 
 -- | All server sent events can contain and Event Id and a Retry Duration as an option
 --   This works, because if the options are equal to their defaults, they will
