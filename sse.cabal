@@ -1,6 +1,6 @@
 cabal-version:      3.12
 name:               sse
-version:            1.0.0.0
+version:            0.2.0.0
 synopsis:           Interface for Server Sent Events using the DataStar framework
 description:        See https://data-star.dev/ for full information
                     about the wonderful new (2024) backend framework,
@@ -11,7 +11,7 @@ maintainer:         nadine.and.henry@pobox.com
 category:           Language
 build-type:         Simple
 extra-doc-files:    CHANGELOG.md
-documentation:      False
+documentation:      True
 
 common warnings
   ghc-options:

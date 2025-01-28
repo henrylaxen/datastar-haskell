@@ -6,10 +6,7 @@ module SnapDemo
     sseRun
   , sseWrite
   , readSignals
-  )
-
-
-where
+  ) where
 
 import           Data.Aeson
 import           Control.Concurrent
@@ -26,6 +23,9 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 
 type Tickle = (Int -> Int) -> IO ()
+
+-- set to True to see the text sent to the client on stdout as well,
+-- VERY handy for debugging your Datastar code
 
 debug :: Bool
 debug = False

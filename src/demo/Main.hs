@@ -16,8 +16,6 @@ import           System.IO hiding (putStr)
 import ServerSentEventGenerator
 import SnapDemo
 import Data.Default
--- import qualified Data.Map as M
--- import Data.ByteString.Lazy (ByteString)
 
 main :: IO ()
 main = do

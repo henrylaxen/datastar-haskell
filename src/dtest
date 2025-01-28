@@ -1,1 +1,0 @@
-cabal repl sse --with-compiler=doctest --repl-options=--verbose 2>&1 | tee /tmp/e.log

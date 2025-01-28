@@ -7,7 +7,6 @@ import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Constants
 import           Data.Functor.Identity     ( Identity(..) )
 
-
 -- | Combines a list of Texts into a single Text, using the same mechanism
 --   as the more commonly known functions wunWrds or unLines.  A line feed is
 --   inserted between each builder in the list.  Empty builders are removed, so
@@ -64,22 +63,19 @@ withDefault dStarEvent defaultValue value =
 withList :: Text -> [Text] -> [Text]
 withList name =  Prelude.map (\x -> cData <> ": " <> name <> " " <> x)
 
--- | Send a list of Texts, as a unit (single treaded) to the server dependent
---   sse function, which is the sole method of the SSE class
-
-sendM :: Text -> IO ()
-sendM b = singleThreaded (sse b)
-
 singleThreaded :: IO () -> IO ()
 singleThreaded action = bracket 
     (newMVar ()) 
     (\mvar -> putMVar mvar ())
     (\mvar -> takeMVar mvar >> action)
 
-test :: [Text] -> IO ()
-test = mapM_ sendM
-
--- | A handy little helper to watch the result of sending stuff through sse
+-- | Handy little helpers to watch the result of sending stuff through sse
 watch ::  Text -> ()
 watch x = runIdentity (sse x)
+
+test :: [Text] -> IO ()
+test = sendM
+
+sendM :: [Text] -> IO ()
+sendM ts =  singleThreaded (mapM_ sse ts)
 

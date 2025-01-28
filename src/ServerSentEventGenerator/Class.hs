@@ -41,7 +41,7 @@ instance  ToText Int where
   toText = pack . show
 
 instance  ToText Bool where
-  toText True = "true"
+  toText True  = "true"
   toText False = "false"
 
 

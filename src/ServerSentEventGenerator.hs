@@ -19,10 +19,11 @@ module ServerSentEventGenerator  (
   , sseHeaders
   , sendPure
   , send
+  , sendEvent
   , sendM
+  , test
   , toPre
   -- $setup
-
   ) where
 
 import Control.Monad.IO.Class
@@ -39,6 +40,7 @@ import           Data.Text ( Text )
 -- >>> import Data.Functor.Identity
 -- >>> import Data.Maybe
 -- >>> import Control.Exception
+
 
 -- <<Bug>> in sse.py, the event_id is an Int
 
@@ -61,8 +63,15 @@ sseHeaders = do
     sseHeaders2 = "Cache-control: no-cache\nContent-type: text/event-stream\n"
     sseHeaders1_1 = sseHeaders2 <> "Connection: keep-alive\n"
 
-send :: (MonadIO m) => EventType -> [Text] -> Options -> m ()
-send a b c = liftIO $ sendM (sendPure a b c)
+-- | Send a text as a unit (single treaded) to the server dependent
+--   sse function, which is the sole method of the SSE class.  The
+--   sse function for IO simply puts the Text to stdout ie putStr
+
+send :: Text -> IO ()
+send t = singleThreaded (sse t)
+
+sendEvent :: (MonadIO m) => EventType -> [Text] -> Options -> m ()
+sendEvent a b c = liftIO $ send (sendPure a b c)
 
 -- | All server sent events can contain and Event Id and a Retry Duration as an option
 --   This works, because if the options are equal to their defaults, they will
@@ -124,8 +133,6 @@ data: fragments line 2
 -- | Insert "data: " and the given text in front of each element of the list
 -- | >>> withList "fragments" ["l1","l2"]
 --   ["data: fragments l1","data: fragments l2"]
-
-
 
 mergeFragments :: [Text] -> Selector -> MergeMode -> FragmentOptions -> Options -> Text
 mergeFragments fragments selector mode fragOptions =  sendPure MergeFragments (buildLines (a:b:c:d))
@@ -297,6 +304,10 @@ toPreLine :: Text -> [Text]
 toPreLine = Prelude.map oneLine . T.lines
   where
    oneLine x = "." <> x
+
+-- | Takes a chunk of text, breaks into a list on newlines, add a
+--   period to beginning of each line, and wraps the resut in a
+--   <pre> ... </pre> tag
 
 toPre :: Text -> [Text]
 toPre x = "<pre>" :

@@ -1,7 +1,10 @@
 # Haskell SDK for Datastar
 
-After familiarizing yourself with the functionality of Datastar, the
-haskell interface basically comes down to one main function, **makeDatastar**
+After familiarizing yourself with the functionality of Datastar, this
+haskell interface basically comes down to a few main functions
+specified in the Datastar sdK
+
+
 
 makeDatastar takes as its first argument an EventType, one of:
   MergeFragments, RemoveFragments, MergeSignals, RemoveSignals, or ExecuteScript
@@ -24,7 +27,7 @@ are properly formatted.
 
 Finally, the executable, which you can try out by typing "cabal run"
 and pointing your browser at:
-  http://localhost:3000/
+  http://localhost:8000/
 will give you a simple demo of some Datastar features and show that
 streaming SSE events to the browser works.
 
