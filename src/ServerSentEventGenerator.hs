@@ -51,7 +51,7 @@ import qualified Data.Text as T ( lines )
 -- >>> import Control.Exception
 
 
--- <<Bug>> in sse.py, the event_id is an Int
+-- ??Bug?? in sse.py, the event_id is an Int
 
 -- | returns the Http header for an SSE depending
 --   on the Http version you are using. Note: you will
@@ -181,7 +181,7 @@ data: settleDuration 1
 <BLANKLINE>
 -}
 
--- <<Bug>> in sse.py, the selector is made optional
+-- ??Bug?? in sse.py, the selector is made optional
 removeFragments :: Selector  -> FragmentOptions -> Options -> Text
 removeFragments selector fragOptions = sendPure RemoveFragments (buildLines [a,b])
   where
@@ -213,7 +213,7 @@ data: onlyIfMissing true
 <BLANKLINE>
 -}
 
--- <<Bug>> in sse.py or README.md,
+-- ??Bug?? in sse.py or README.md,
 -- sse.py has signals as an array, README.md has signals as a string
 -- I think it would be better if it were an array. That would also make
 -- an empty list a valid mergeSignals request, which might be more
@@ -254,7 +254,7 @@ data: datastar-remove-signals position
 <BLANKLINE>
 -}
 
--- <<bug>> Maybe? sse.py allows the paths to be empty,
+-- ??bug?? Maybe? sse.py allows the paths to be empty,
 --                README.md does not specify
 removeSignals :: [Text] -> Options -> Text
 removeSignals paths = sendPure RemoveSignals (buildLines c)
@@ -294,7 +294,7 @@ data: attributes type text/javascript
 <BLANKLINE>
 -}
 
--- <<bug>> Maybe? sse.py allows the script to be empty, and type is array
+-- ??bug?? Maybe? sse.py allows the script to be empty, and type is array
 --                README.md does not specify, and type is string
 executeScript ::  [Text] -> [Text] -> Bool -> Options -> Text
 executeScript script attributes autoRemove = sendPure ExecuteScript (buildLines (a <> b <> [c]))

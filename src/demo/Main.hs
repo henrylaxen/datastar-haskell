@@ -11,7 +11,7 @@ import Data.Time ( getCurrentTime )
 import ServerSentEventGenerator
 import Snap
 import Snap.Util.FileServe ( serveDirectory )
-import SnapSSE ( sseRun, sseWrite )
+import ServerSentEventGenerator.Server.Snap ( runSSE, send )
 import System.IO
     ( stdout, hSetBuffering, stderr, BufferMode(NoBuffering) )
 import qualified HTMLEntities.Text ( text )
@@ -62,12 +62,12 @@ handlerSignals = do
       , "\nEnd\n" ]
     ds = mergeFragments (toPre output) (SEL "#signals") Inner def def
   liftIO $ putStrLn (T.unpack output)
-  sseRun (SSEapp (sseWrite ds))
+  runSSE (SSEapp (send ds))
 
 handlerFeed :: Snap ()
 handlerFeed = do
   liftIO $ putStrLn "feeding"
-  sseRun (SSEapp f)
+  runSSE (SSEapp f)
   where
     f :: SSEstream -> IO ()
     f w = do
@@ -84,14 +84,14 @@ handlerFeed = do
       
       writeBoth allDone w
       sleep 2
-      sseWrite removeDstar w
+      send removeDstar w
     writeNow :: SSEstream -> Int -> IO ()
     writeNow w n = do
       now <- getCurrentTime >>=
         return . T.pack . ((Prelude.replicate n '.') <> ) . show
-      sseWrite (feedDstar now) w
+      send (feedDstar now) w
       threadDelay (1 * 1000 * 1000)
-    writeBoth x w = putStrLn (T.unpack x) >> sseWrite (feedDstar x) w
+    writeBoth x w = putStrLn (T.unpack x) >> send (feedDstar x) w
     sleeping = "Sleeping for 70 seconds, but continuing to ping"
     allDone  = "All Done"
     feedDstar :: Text -> Text
@@ -103,7 +103,7 @@ handlerKeats :: Snap ()
 handlerKeats = do
   liftIO $ putStrLn "Keats"
   ode <- liftIO  $ T.readFile "src/demo/www/keats.txt"
-  sseRun (SSEapp (f ode))
+  runSSE (SSEapp (f ode))
   where
     f ::  Text -> SSEstream -> IO ()
     f ode w =  singleThreaded $ foldM_ (\x -> foldSlowly w x) mempty (T.unpack ode)
@@ -113,7 +113,7 @@ handlerKeats = do
     foldSlowly w b c = do
       pause
       let s = b <> (T.singleton c)
-      sseWrite (keatsDstar s) w
+      send (keatsDstar s) w
       return s
 
 pause :: IO ()

@@ -9,12 +9,14 @@ specified in the Datastar sdK
     mergeSignals    :: Text -> Bool -> Options -> Text
     removeSignals   :: [Text] -> Options -> Text
     executeScript   ::  [Text] -> [Text] -> Bool -> Options -> Text
-    send :: Text -> Client is **Not** defined
+    send :: Text -> SSEstream -> IO () -- !!Only for Snap web server!!
 
-additionally you, dear user, will need to implement a web server
-dependent function sends the text you created to the client. I have
-included a sample implementation for the Snap server, in the SnapSSE
-module, please have a look at it.
+Additionally you, dear user, will need to implement a web server
+dependent function named **send** that sends the text you created to
+the client. I have included a sample implementation for the Snap
+server, in the ServerSentEventGenerator.Server.Snap module, please
+have a look at it.  If you implement a similar module for you server
+of choice, please create a pull request so I can include it.
 
 You will notice a Bool named debug, which is currently set to False.
 Setting it to True will enable debug messages printed to stdout so
@@ -24,7 +26,12 @@ Finally, the executable, which you can try out by typing "cabal run"
 and pointing your browser at:
   http://localhost:8000/
 will give you a simple demo of some Datastar features and show that
-streaming SSE events to the browser works. 
+streaming SSE events to the browser work. 
 
 The code itself is extensively documented, with many doctest examples
-that show up in the Haddock files.  
+that show up in the Haddock files.
+
+Best wishes,
+Henry Laxen
+nadine.and.henry@pobox.com
+http://nadineloveshenry.com/

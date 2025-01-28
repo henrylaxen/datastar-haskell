@@ -1,10 +1,10 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# OPTIONS_GHC -Wno-missing-signatures #-}
 
-module SnapSSE
+module ServerSentEventGenerator.Server.Snap
   (
-    sseRun
-  , sseWrite
+    runSSE
+  , send
   , readSignals
   ) where
 
@@ -36,8 +36,8 @@ debug = False
 ps :: String -> IO ()
 ps x = if debug then putStrLn x else return ()
 
-sseRun :: SSEapp -> Snap ()
-sseRun (SSEapp app) = do
+runSSE :: SSEapp -> Snap ()
+runSSE (SSEapp app) = do
   request <- Snap.getRequest
   let lastId = getHeader "Last-Event-ID" request
   headers <- sseHeaders
@@ -45,7 +45,7 @@ sseRun (SSEapp app) = do
   Snap.escapeHttp $ \tickle _ writeEnd -> do
       ps ("Last-Event-ID: " <> show lastId)
       pingThreadId <-forkIO (ping tickle writeEnd)
-      handle (handleException pingThreadId "sseRun") $ do
+      handle (handleException pingThreadId "runSSE") $ do
         Streams.write (Just headers) writeEnd
         Streams.write (Just flush) writeEnd
         ps "enter app"
@@ -54,12 +54,12 @@ sseRun (SSEapp app) = do
         killThread pingThreadId
         ps "killing ping thread"
         Streams.write Nothing writeEnd
-        ps "sseRun done"
+        ps "runSSE done"
 
-sseWrite :: Text -> SSEstream -> IO ()
-sseWrite x writeEnd = do
+send :: Text -> SSEstream -> IO ()
+send x writeEnd = do
   let s =  Data.Text.unpack x
-  ps ("sseWrite: " <> s)
+  ps ("send: " <> s)
   Streams.write (Just (encodeUtf8Builder x)) writeEnd
   Streams.write (Just flush) writeEnd
 
