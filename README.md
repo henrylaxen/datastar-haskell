@@ -26,3 +26,5 @@ and pointing your browser at:
 will give you a simple demo of some Datastar features and show that
 streaming SSE events to the browser works. 
 
+The code itself is extensively documented, with many doctest examples
+that show up in the Haddock files.  
