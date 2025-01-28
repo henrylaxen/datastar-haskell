@@ -4,12 +4,11 @@ After familiarizing yourself with the functionality of Datastar, this
 haskell interface basically comes down to a few main functions
 specified in the Datastar sdK
 
-mergeFragments  :: [Text] -> Selector -> MergeMode -> FragmentOptions -> Options -> Text
-removeFragments :: Selector  -> FragmentOptions -> Options -> Text
-mergeSignals    :: Text -> Bool -> Options -> Text
-removeSignals   :: [Text] -> Options -> Text
-executeScript   ::  [Text] -> [Text] -> Bool -> Options -> Text
-send            :: Text -> IO ()
+    mergeFragments  :: [Text] -> Selector -> MergeMode -> FragmentOptions -> Options -> Text
+    removeFragments :: Selector  -> FragmentOptions -> Options -> Text
+    mergeSignals    :: Text -> Bool -> Options -> Text
+    removeSignals   :: [Text] -> Options -> Text
+    executeScript   ::  [Text] -> [Text] -> Bool -> Options -> Text
 
 additionally you, dear user, will need to implement the web server
 dependent function sse :: Text -> m () where m will depend on your web

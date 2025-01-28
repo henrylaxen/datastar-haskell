@@ -18,8 +18,6 @@ module ServerSentEventGenerator  (
   , singleThreaded
   , sseHeaders
   , sendPure
-  , send
-  , sendEvent
   , sendM
   , test
   , toPre
@@ -75,15 +73,11 @@ sseHeaders = do
     sseHeaders2 = "Cache-control: no-cache\nContent-type: text/event-stream\n"
     sseHeaders1_1 = sseHeaders2 <> "Connection: keep-alive\n"
 
--- | Send a text as a unit (single treaded) to the server dependent
---   sse function, which is the sole method of the SSE class.  The
---   sse function for IO simply puts the Text to stdout ie putStr
+-- | Send is supposed to send a unit of text to the client.  Unfortunately, I
+--   don't know how to do this in a server independent way. 
 
 send :: Text -> IO ()
-send t = singleThreaded (sse t)
-
-sendEvent :: (MonadIO m) => EventType -> [Text] -> Options -> m ()
-sendEvent a b c = liftIO $ send (sendPure a b c)
+send = error "not implemented, please see sseSend in SnamSSE for ideas"
 
 -- | All server sent events can contain and Event Id and a Retry Duration as an option
 --   This works, because if the options are equal to their defaults, they will
