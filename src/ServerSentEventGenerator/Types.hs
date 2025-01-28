@@ -1,14 +1,15 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ServerSentEventGenerator.Types where
 
-import ServerSentEventGenerator.Internal
-import ServerSentEventGenerator.Class
-import ServerSentEventGenerator.Constants
-import Data.Text
-import Data.Default
-import Control.Exception
+import Control.Exception ( throw, Exception )
 import Data.ByteString.Builder ( Builder )
-import qualified System.IO.Streams as Streams
+import Data.Default ( Default(..) )
+import Data.Text ( Text )
+import ServerSentEventGenerator.Class ( ToText(..) )
+import ServerSentEventGenerator.Constants
+import ServerSentEventGenerator.Internal
+    ( buildLines, withDefault )
+import qualified System.IO.Streams as Streams ( OutputStream )
 
 type SSEstream = Streams.OutputStream Builder
 
@@ -18,7 +19,6 @@ data Options = O {
     eventId       :: Text
   , retryDuration :: Int
   } deriving (Show)
-
 instance Default Options where
   def = O {
     eventId = def

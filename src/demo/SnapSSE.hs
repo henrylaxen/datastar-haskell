@@ -1,26 +1,29 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# OPTIONS_GHC -Wno-missing-signatures #-}
 
-module SnapDemo
+module SnapSSE
   (
     sseRun
   , sseWrite
   , readSignals
   ) where
 
-import           Data.Aeson
-import           Control.Concurrent
-import           Control.Exception
-import           Control.Monad
-import           Control.Monad.IO.Class
-import           Snap hiding ( headers, HttpVersion )
-import qualified System.IO.Streams       as Streams
-import Data.ByteString.Builder.Extra
-import           ServerSentEventGenerator
-import           Data.Text.Encoding ( encodeUtf8Builder )
-import           Data.Text ( Text, unpack )
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
+import Control.Concurrent
+    ( threadDelay, forkIO, killThread, myThreadId, ThreadId )
+import Control.Exception
+    ( SomeException, handle, throwIO, Exception(displayException) )
+import Control.Monad ( forever )
+import Control.Monad.IO.Class ( MonadIO(liftIO) )
+import Data.Aeson ( decode, decodeStrictText, Value )
+import Data.ByteString.Builder.Extra ( flush )
+import Data.Text ( Text, unpack )
+import Data.Text.Encoding ( encodeUtf8Builder )
+import ServerSentEventGenerator
+    ( HttpVersion(..), SSEapp(..), SSEstream, sseHeaders )
+import Snap hiding ( headers, HttpVersion )
+import qualified System.IO.Streams as Streams ( write )
+import qualified Data.Text as T ( init, length, tail, pack )
+import qualified Data.Text.Encoding as T ( decodeUtf8 )
 
 type Tickle = (Int -> Int) -> IO ()
 

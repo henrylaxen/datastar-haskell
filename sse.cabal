@@ -74,7 +74,7 @@ Executable datastar-demo
       , ServerSentEventGenerator.Constants
       , ServerSentEventGenerator.Types
       , ServerSentEventGenerator.Internal
-      , SnapDemo
+      , SnapSSE
   hs-source-dirs: src,src/demo
   main-is: Main.hs
     

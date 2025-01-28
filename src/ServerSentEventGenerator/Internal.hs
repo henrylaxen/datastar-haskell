@@ -1,11 +1,11 @@
 module ServerSentEventGenerator.Internal where
 
-import Control.Concurrent
-import Control.Exception
-import Data.Text hiding ( map )
-import ServerSentEventGenerator.Class
-import ServerSentEventGenerator.Constants
-import           Data.Functor.Identity     ( Identity(..) )
+import Control.Concurrent ( newMVar, putMVar, takeMVar )
+import Control.Exception ( bracket )
+import Data.Functor.Identity ( Identity(..) )
+import Data.Text ( Text )
+import ServerSentEventGenerator.Class ( SSE(sse) )
+import ServerSentEventGenerator.Constants ( cData )
 
 -- | Combines a list of Texts into a single Text, using the same mechanism
 --   as the more commonly known functions wunWrds or unLines.  A line feed is

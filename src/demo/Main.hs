@@ -1,21 +1,23 @@
 module Main where
 
-import           Control.Applicative
-import           Control.Concurrent
-import           Control.Monad.IO.Class
-import           Control.Monad
-import           Data.Maybe
-import qualified Data.Text as T
-import qualified Data.Text.IO as T
-import           Data.Text ( Text )
-import           Data.Time           ( getCurrentTime )
-import qualified HTMLEntities.Text   ( text )
-import           Snap
-import           Snap.Util.FileServe ( serveDirectory )
-import           System.IO hiding (putStr)
+import Control.Applicative ( Alternative((<|>)) )
+import Control.Concurrent ( threadDelay )
+import Control.Monad ( foldM_ )
+import Control.Monad.IO.Class ( MonadIO(liftIO) )
+import Data.Default ( Default(def) )
+import Data.Maybe ( fromMaybe )
+import Data.Text ( Text )
+import Data.Time ( getCurrentTime )
 import ServerSentEventGenerator
-import SnapDemo
-import Data.Default
+import Snap
+import Snap.Util.FileServe ( serveDirectory )
+import SnapSSE ( sseRun, sseWrite )
+import System.IO
+    ( stdout, hSetBuffering, stderr, BufferMode(NoBuffering) )
+import qualified HTMLEntities.Text ( text )
+import qualified Data.Text as T
+    ( replace, pack, singleton, unpack )
+import qualified Data.Text.IO as T ( readFile )
 
 main :: IO ()
 main = do

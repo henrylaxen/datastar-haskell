@@ -26,15 +26,27 @@ module ServerSentEventGenerator  (
   -- $setup
   ) where
 
-import Control.Monad.IO.Class
-import Data.Default                       ( Default(..) )
+import Control.Monad.IO.Class ( MonadIO(..) )
+import Data.ByteString.Builder ( Builder )
+import Data.Default ( Default(..) )
+import Data.Text ( Text )
 import ServerSentEventGenerator.Class
+    ( ToText(..), SSE, HttpVersion(..), sse )
 import ServerSentEventGenerator.Constants
 import ServerSentEventGenerator.Internal
+    ( buildLines, withDefault, withList, sendM, singleThreaded, test )
 import ServerSentEventGenerator.Types
-import Data.ByteString.Builder ( Builder )
-import qualified Data.Text as T
-import           Data.Text ( Text )
+    ( ServerSentEventGeneratorExceptions(SignalsSelectorIsMissing,
+                                         RemoveFragmentSelectorIsMissing),
+      FragmentOptions(..),
+      MergeMode(..),
+      EventType(..),
+      Selector(..),
+      Options(..),
+      SSEapp(..),
+      SSEstream,
+      bug )
+import qualified Data.Text as T ( lines )
 
 -- $setup
 -- >>> import Data.Functor.Identity

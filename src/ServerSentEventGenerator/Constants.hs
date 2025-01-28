@@ -1,6 +1,6 @@
 module ServerSentEventGenerator.Constants where
 
-import Data.Text
+import Data.Text ( Text )
 
 -- taken from consts.ts
 -- why?

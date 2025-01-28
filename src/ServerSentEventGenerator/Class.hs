@@ -1,11 +1,11 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ServerSentEventGenerator.Class where
 
-import           Data.Default
-import           Data.Functor.Identity     ( Identity(..) )
-import           Data.Text
-import           Data.Text.IO
-import           Debug.Trace
+import Data.Default ( Default(..) )
+import Data.Functor.Identity ( Identity(..) )
+import Data.Text ( pack, Text )
+import Data.Text.IO ( putStr )
+import Debug.Trace ( trace )
 
 class Monad m => HttpVersion m where
   -- | Are we running Http Version 1.1? Needed to send out the correct headers
