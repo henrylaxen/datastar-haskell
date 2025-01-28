@@ -7,6 +7,12 @@ import ServerSentEventGenerator.Constants
 import Data.Text
 import Data.Default
 import Control.Exception
+import Data.ByteString.Builder ( Builder )
+import qualified System.IO.Streams as Streams
+
+type SSEstream = Streams.OutputStream Builder
+
+newtype SSEapp = SSEapp (SSEstream -> IO ())
 
 data Options = O {
     eventId       :: Text
@@ -28,7 +34,6 @@ instance ToText Options where
       a = withSSEdefault  (eventId options) mempty cEventId
       b = withSSEdefault  (retryDuration options) cDefaultSseRetryDurationMs cRetryDuration
     in mconcat . buildLines $ [a,b]
-
 
 newtype Selector = SEL {unSelector :: Text}
   deriving (Show, Semigroup, Monoid, Eq)

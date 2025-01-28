@@ -5,6 +5,8 @@ import Control.Exception
 import Data.Text hiding ( map )
 import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Constants
+import           Data.Functor.Identity     ( Identity(..) )
+
 
 -- | Combines a list of Texts into a single Text, using the same mechanism
 --   as the more commonly known functions wunWrds or unLines.  A line feed is
@@ -55,6 +57,10 @@ withDefault dStarEvent defaultValue value =
   then mempty
   else cData <> ": " <> dStarEvent <> " " <>  value
 
+-- | Insert "data: " and the given text in front of each element of the list
+-- | >>> withList "fragments" ["l1","l2"]
+--   ["data: fragments l1","data: fragments l2"]
+
 withList :: Text -> [Text] -> [Text]
 withList name =  Prelude.map (\x -> cData <> ": " <> name <> " " <> x)
 
@@ -64,20 +70,16 @@ withList name =  Prelude.map (\x -> cData <> ": " <> name <> " " <> x)
 sendM :: Text -> IO ()
 sendM b = singleThreaded (sse b)
 
-singleThreaded :: IO a -> IO a
+singleThreaded :: IO () -> IO ()
 singleThreaded action = bracket 
     (newMVar ()) 
-    (\mvar -> takeMVar mvar) 
-    (\_ -> action)
-
-
+    (\mvar -> putMVar mvar ())
+    (\mvar -> takeMVar mvar >> action)
 
 test :: [Text] -> IO ()
 test = mapM_ sendM
 
-rr :: String -> Int -> IO ()
-rr x n = do
-  let a = Prelude.concatMap (\y -> ("," <> x <> show y) ) [1 .. n]
-  putStr . Prelude.drop 1 $ a
-  putStrLn " :: Text"
-  putStrLn (x <> " :: IO ()")
+-- | A handy little helper to watch the result of sending stuff through sse
+watch ::  Text -> ()
+watch x = runIdentity (sse x)
+

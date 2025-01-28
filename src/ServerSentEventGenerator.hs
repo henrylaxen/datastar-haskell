@@ -6,26 +6,34 @@ module ServerSentEventGenerator  (
   , FragmentOptions(..)
   , EventType(..)
   , MergeMode(..)
+  , SSE
+  , SSEstream
+  , SSEapp(..)
+  , Selector(..)
   , mergeFragments
   , removeFragments
   , mergeSignals
   , removeSignals
   , executeScript
+  , singleThreaded
   , sseHeaders
   , sendPure
   , send
-
+  , sendM
+  , toPre
   -- $setup
 
   ) where
 
 import Control.Monad.IO.Class
 import Data.Default                       ( Default(..) )
-import Data.Text hiding (map)
 import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Constants
 import ServerSentEventGenerator.Internal
 import ServerSentEventGenerator.Types
+import Data.ByteString.Builder ( Builder )
+import qualified Data.Text as T
+import           Data.Text ( Text )
 
 -- $setup
 -- >>> import Data.Functor.Identity
@@ -45,7 +53,7 @@ import ServerSentEventGenerator.Types
 -- >>> runIdentity $ sseHeaders
 -- "Cache-control: no-cache\nContent-type: text/event-stream\nConnection: keep-alive\n"
 
-sseHeaders :: HttpVersion m => m Text
+sseHeaders :: HttpVersion m => m Builder
 sseHeaders = do
   b <- isHttpVersion1_1
   return $ if b then sseHeaders1_1 else sseHeaders2
@@ -112,6 +120,12 @@ data: fragments line 1
 data: fragments line 2
 <BLANKLINE>
 -}
+
+-- | Insert "data: " and the given text in front of each element of the list
+-- | >>> withList "fragments" ["l1","l2"]
+--   ["data: fragments l1","data: fragments l2"]
+
+
 
 mergeFragments :: [Text] -> Selector -> MergeMode -> FragmentOptions -> Options -> Text
 mergeFragments fragments selector mode fragOptions =  sendPure MergeFragments (buildLines (a:b:c:d))
@@ -278,3 +292,15 @@ executeScript script attributes autoRemove = sendPure ExecuteScript (buildLines 
           then [cData <> ": " <> cAttributes <> " " <> cDefaultAttributes]
           else withList cAttributes attributes
     c = withDefault cAutoRemove (toText cDefaultAutoRemove) (toText autoRemove)
+
+toPreLine :: Text -> [Text]
+toPreLine = Prelude.map oneLine . T.lines
+  where
+   oneLine x = "." <> x
+
+toPre :: Text -> [Text]
+toPre x = "<pre>" :
+          toPreLine x <>
+          ["</pre>" ]
+
+  

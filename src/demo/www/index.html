@@ -2,11 +2,18 @@
 <html>
   <head>
     <title>Haskell + Datastar Example</title>
-    <script type="module" src="/datastar.js"></script>
+    <script type="module" src="datastar.js"></script>
   </head>
   <body>
     <h2>Haskell + Datastar Example</h2>
     <main class="container" id="main" >
+      <div data-signals="{key1: {one: 1, two: 2}, key2: 'string'}"></div>
+      <button data-on-click="@get('signals')">signals with get</button>
+      <button data-on-click="@post('signals')">signals with post</button>
+      <button data-on-click="@patch('signals')">signals with patch</button>
+      <button data-on-click="@delete('signals')">signals with delete</button>
+      <button data-on-click="@put('signals')">signals with put</button>
+      <div id="signals">signals output goes here</div>
       <div>
         <b>I suggest you fire up the web server and watch the output
           written to stdout so you can follow along with what is going on.</b>
