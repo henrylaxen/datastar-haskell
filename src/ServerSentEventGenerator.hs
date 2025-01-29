@@ -69,7 +69,7 @@ sseHeaders = do
   b <- isHttpVersion1_1
   return $ if b then sseHeaders1_1 else sseHeaders2
   where
-    sseHeaders2 = "Cache-control: no-cache\nContent-type: text/event-stream\n"
+    sseHeaders2 = "HTTP/1.1 200 OK\nCache-control: no-cache\nContent-type: text/event-stream\n"
     sseHeaders1_1 = sseHeaders2 <> "Connection: keep-alive\n"
 
 -- | Send is supposed to send a unit of text to the client.  Unfortunately, I
