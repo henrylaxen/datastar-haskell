@@ -1,0 +1,145 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+module Main where
+
+-- import Control.Applicative ( Alternative((<|>)) )
+-- import Control.Concurrent ( threadDelay )
+-- import Control.Monad ( foldM_ )
+-- import Control.Monad.IO.Class ( MonadIO(liftIO) )
+-- import Data.ByteString.Lazy
+-- import Data.Maybe ( fromMaybe )
+-- import Data.Time ( getCurrentTime )
+-- import ServerSentEventGenerator.Types
+-- import ServerSentEventGenerator.Constants
+-- import Snap
+-- import System.IO
+--     ( stdout, hSetBuffering, stderr, BufferMode(NoBuffering) )
+-- import qualified Data.Text as T
+-- import Data.Aeson.Types hiding ( Options )
+-- import Data.Aeson.KeyMap
+-- import qualified Data.Aeson.Key as Key
+-- import qualified Data.Vector as V
+import NeatInterpolation
+import Data.Aeson hiding ( Options )
+import Data.Default ( Default(def) )
+import Data.Text
+import ServerSentEventGenerator
+import Data.String
+
+  
+main :: IO ()
+main = do
+  putStrLn "all done"
+
+js1 :: Text
+js1 = [untrimming|{"events":
+  [
+    { "type": "executeScript",
+      "script": "console.log('hello');",
+      "eventId": 1,
+      "retryDuration": 2000,
+       "attributes": {
+         "type": "text/javascript",
+         "blocking": false
+       },
+       "autoRemove": false
+     }
+   ]
+}
+|]
+
+-- Just t1 = decodeStrictText js1 :: Maybe Value
+
+-- data DSEvent = DSEvent {
+--   eType :: EventType
+--   eScript :: Text
+--   eEventId :: Int
+--   eRetryDuration :: Int
+--   eAutoRemove :: Bool
+--   eAttributes :: [Text] }
+
+-- prependFailure :: String -> Parser a -> Parser a
+-- data Coord = Coord { x :: Double, y :: Double }
+
+-- instance FromJSON Coord where
+--     parseJSON (Object v) = Coord
+--         <$> v .: "x"
+--         <*> v .: "y"
+
+--     -- We do not expect a non-Object value here.
+--     -- We could use empty to fail, but typeMismatch
+--     -- gives a much more informative error message.
+--     parseJSON invalid    =
+--         prependFailure "parsing Coord failed, "
+--             (typeMismatch "Object" invalid)
+-- typeMismatch :: String -> Value -> Parser a
+-- The name of the JSON type being parsed ("Object", "Array", "String", "Number", "Boolean", or "Null").
+-- The actual value encountered.
+-- unexpected :: Value -> Parser a
+
+-- (Object (fromList [("events",Array
+--   [Object (fromList [("attributes",Object (fromList [("blocking",Bool False),("type",String "text/javascript")])),("autoRemove",Bool False),("eventId",Number 1.0),("retryDuration",Number 2000.0),("script",String "console.log('hello');"),("type",String "executeScript")])])]))  
+
+-- instance ToJSON Person where
+--     -- this generates a Value
+--     toJSON (Person name age) =
+--         object ["name" .= name, "age" .= age]
+
+--     -- this encodes directly to a bytestring Builder
+--     toEncoding (Person name age) =
+--         pairs ("name" .= name <> "age" .= age)
+
+-- instance FromJSON ServerSentEventGenerator.Types.Options where
+--   parseJSON (Object o) = O
+--     <$> o .: "eventId"
+--     <*> o .: "retryDuration"
+--   parseJSON invalid = 
+--     prependFailure "parsing Options failed, "
+--       (typeMismatch "Object" invalid)
+
+
+-- instance ToJSON ServerSentEventGenerator.Types.Options where
+--   toJSON ( ServerSentEventGenerator.Types.O eventId retryDuration) =
+--     object [Key.fromText cEventId .?= eventId, Key.fromText cRetryDuration .?= retryDuration]
+
+-- t2a =  toJSON $ (O "ab123" 1001)
+-- t2b =  toJSON $ (O "" 1001)
+-- t2c =  toJSON $ (O "" 1000)
+-- t2 = (t2a,t2b,t2c)       
+       
+
+-- instance ToJSON ServerSentEventGenerator.Types.Options where
+--   toJSON ( ServerSentEventGenerator.Types.O eventId retryDuration) = object
+--     [Key.fromText cEventId .= fromMaybe "" eventId]
+    
+--     object [Key.fromText cEventId .?= eventId, Key.fromText cRetryDuration .?= retryDuration]
+
+instance ToJSON Options where
+    toJSON opts = object [
+        "eventId"       .= eventId opts
+      , "retryDuration" .= retryDuration opts
+      ]
+
+instance FromJSON Options where
+    parseJSON = withObject "Options" $ \v -> O
+        <$> v .:? "eventId"       .!= eventId def
+        <*> v .:? "retryDuration" .!= retryDuration def
+
+instance ToJSON Selector where
+    toJSON (SEL x) = String x
+    -- or with record syntax:
+    -- toJSON = String . unSelector
+
+instance FromJSON Selector where
+    parseJSON = withText "Selector" $ \t ->
+        pure $ SEL t
+
+-- t3a =  toJSON $ SEL "#idx"
+-- t3b =  toJSON $ SEL ""
+-- t3 = (t3a,t3b)
+
+data A a = A {a :: a}
+
+x :: IsString a => a
+x = "x"
+
+

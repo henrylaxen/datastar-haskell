@@ -2,17 +2,19 @@ module ServerSentEventGenerator.Internal where
 
 import Control.Concurrent ( newMVar, putMVar, takeMVar )
 import Control.Exception ( bracket )
-import Data.Functor.Identity ( Identity(..) )
+-- import Data.Functor.Identity ( Identity(..) )
 import Data.Text ( Text )
-import ServerSentEventGenerator.Class ( SSE(sse) )
+import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Constants ( cData )
+import Data.String
+import qualified Data.Text.IO
 
 -- | Combines a list of Texts into a single Text, using the same mechanism
 --   as the more commonly known functions wunWrds or unLines.  A line feed is
 --   inserted between each builder in the list.  Empty builders are removed, so
 --   there are no blank lines.
 
-buildLines :: [Text] -> [Text]
+buildLines :: (Eq a, Monoid a, IsString a) => [a] -> [a]
 buildLines texts = if (mconcat texts) == mempty then [] else [go mempty texts]
   where
     go acc []     = acc
@@ -50,7 +52,7 @@ do
 [data: prefix a]
 -}
 
-withDefault :: Text -> Text -> Text -> Text
+withDefault :: (Eq a, Monoid a, IsString a) => a -> a -> a -> a
 withDefault dStarEvent defaultValue value =
   if value == defaultValue || value == mempty
   then mempty
@@ -60,22 +62,26 @@ withDefault dStarEvent defaultValue value =
 -- | >>> withList "fragments" ["l1","l2"]
 --   ["data: fragments l1","data: fragments l2"]
 
-withList :: Text -> [Text] -> [Text]
+withList :: (Monoid a, IsString a) => a -> [a] -> [a]
 withList name =  Prelude.map (\x -> cData <> ": " <> name <> " " <> x)
 
 singleThreaded :: IO () -> IO ()
-singleThreaded action = bracket 
-    (newMVar ()) 
+singleThreaded action = bracket
+    (newMVar ())
     (\mvar -> putMVar mvar ())
     (\mvar -> takeMVar mvar >> action)
 
 -- | Handy little helpers to watch the result of sending stuff through sse
-watch ::  Text -> ()
-watch x = runIdentity (sse x)
+-- watch ::  Text -> ()
+-- watch ::  IsString a => a -> ()
+-- watch x = runIdentity (sse x)
 
 test :: [Text] -> IO ()
-test = sendM
+test = mapM_ ps
 
-sendM :: [Text] -> IO ()
-sendM ts =  singleThreaded (mapM_ sse ts)
+-- sendM :: Monad m => [Text] -> m ()
+-- -- sendM :: IsString a => [a] -> IO ()
+-- sendM ts =  singleThreaded (mapM_ sse ts)
 
+ps :: ToText a => a ->  IO ()
+ps =  Data.Text.IO.putStr . toText

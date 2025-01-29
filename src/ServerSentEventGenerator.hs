@@ -1,12 +1,12 @@
-module ServerSentEventGenerator  (
-
+module ServerSentEventGenerator  
+{-
     HttpVersion(..)
   , ToText(..)
   , Options(..)
   , FragmentOptions(..)
   , EventType(..)
   , MergeMode(..)
-  , SSE
+--   , SSE
   , SSEstream
   , SSEapp(..)
   , Selector(..)
@@ -18,32 +18,23 @@ module ServerSentEventGenerator  (
   , singleThreaded
   , sseHeaders
   , sendPure
-  , sendM
+--   , sendM
   , test
   , toPre
   -- $setup
-  ) where
+  ) -}
+
+where
 
 import Data.ByteString.Builder ( Builder )
 import Data.Default ( Default(..) )
 import Data.Text ( Text )
 import ServerSentEventGenerator.Class
-    ( ToText(..), SSE, HttpVersion(..) )
 import ServerSentEventGenerator.Constants
 import ServerSentEventGenerator.Internal
-    ( buildLines, withDefault, withList, sendM, singleThreaded, test )
 import ServerSentEventGenerator.Types
-    ( ServerSentEventGeneratorExceptions(SignalsSelectorIsMissing,
-                                         RemoveFragmentSelectorIsMissing),
-      FragmentOptions(..),
-      MergeMode(..),
-      EventType(..),
-      Selector(..),
-      Options(..),
-      SSEapp(..),
-      SSEstream,
-      bug )
 import qualified Data.Text as T ( lines )
+import Data.String
 
 -- $setup
 -- >>> import Data.Functor.Identity
@@ -82,6 +73,8 @@ sseHeaders = do
 --   This works, because if the options are equal to their defaults, they will
 --   be removed from the output
 
+-- sendPure :: EventType -> [Text] -> Options -> Text
+-- sendPure :: IsString a => EventType -> [a] -> Options -> b
 sendPure :: EventType -> [Text] -> Options -> Text
 sendPure eventType dataLines options = mconcat (buildLines (a:b:dataLines)) <> "\n\n"
   where
@@ -138,14 +131,17 @@ data: fragments line 2
 -- | Insert "data: " and the given text in front of each element of the list
 -- | >>> withList "fragments" ["l1","l2"]
 --   ["data: fragments l1","data: fragments l2"]
-
-mergeFragments :: [Text] -> Selector -> MergeMode -> FragmentOptions -> Options -> Text
+-- mergeFragments :: [Text] -> Selector -> MergeMode -> FragmentOptions -> Options -> Text
+mergeFragments
+  :: (ToText p1, ToText p2, ToText p3, IsString a) =>
+     [a] -> p3 -> p2 -> p1 -> Options -> Text
 mergeFragments fragments selector mode fragOptions =  sendPure MergeFragments (buildLines (a:b:c:d))
   where
     a = toText selector
     b = withDefault cMerge cDefaultMergeMode (toText mode)
     c = toText fragOptions
     d = withList cFragments fragments
+{-
 
 {- | >>> :{
 do
@@ -320,3 +316,4 @@ toPre x = "<pre>" :
           ["</pre>" ]
 
   
+-}

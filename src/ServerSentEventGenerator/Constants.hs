@@ -1,6 +1,7 @@
 module ServerSentEventGenerator.Constants where
 
-import Data.Text ( Text )
+import Data.String
+
 
 -- taken from consts.ts
 -- why?
@@ -9,14 +10,14 @@ import Data.Text ( Text )
 -- a function call in front of each data constructor, so I
 -- decided to just use the prefix "c"
 
-cDATASTAR, cDATASTAR_EVENT, cDATASTAR_REQUEST, cVERSION, cMorph        :: Text
-cInner, cOuter, cPrepend, cAppend, cBefore, cAfter, cUpsertAttributes  :: Text
-cMergeFragments, cMergeSignals, cRemoveFragments, cRemoveSignals       :: Text
-cExecuteScript, cSelector, cMerge, cSettleDuration, cFragments         :: Text
-cUseViewTransition, cSignals, cOnlyIfMissing, cPaths, cScript          :: Text
-cAttributes, cAutoRemove, cDefaultAttributes                           :: Text
-cEventId, cDefaultEventId, cRetryDuration                              :: Text
-cDefaultSelector, cDefaultMergeMode                                    :: Text
+cDATASTAR, cDATASTAR_EVENT, cDATASTAR_REQUEST, cVERSION, cMorph        :: IsString a => a
+cInner, cOuter, cPrepend, cAppend, cBefore, cAfter, cUpsertAttributes  :: IsString a => a
+cMergeFragments, cMergeSignals, cRemoveFragments, cRemoveSignals       :: IsString a => a
+cExecuteScript, cSelector, cMerge, cSettleDuration, cFragments         :: IsString a => a
+cUseViewTransition, cSignals, cOnlyIfMissing, cPaths, cScript          :: IsString a => a
+cAttributes, cAutoRemove, cDefaultAttributes                           :: IsString a => a
+cEventId, cDefaultEventId, cRetryDuration                              :: IsString a => a
+cDefaultSelector, cDefaultMergeMode                                    :: IsString a => a
 
 cDefaultSettleDurationMs, cDefaultSseRetryDurationMs                   :: Int
 cDefaultFragmentsUseViewTransitions                                    :: Bool
@@ -65,11 +66,11 @@ cEventId                            =  "id"
 cRetryDuration                      =  "retry"
 cAutoRemove                         =  "autoRemove"
 -- added by henry
-cData :: Text
+cData :: IsString a => a
 cData                               =  "data"
-cEvent :: Text
+cEvent :: IsString a => a
 cEvent                              =  "event"
-cSpace :: Text
+cSpace :: IsString a => a
 cSpace                              =  ": "
   
 -- DATASTAR_KEY =  "datastar"

@@ -12,7 +12,6 @@ import ServerSentEventGenerator.Internal
 import qualified System.IO.Streams as Streams ( OutputStream )
 
 type SSEstream = Streams.OutputStream Builder
-
 newtype SSEapp = SSEapp (SSEstream -> IO ())
 
 data Options = O {
