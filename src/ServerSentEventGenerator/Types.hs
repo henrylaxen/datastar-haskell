@@ -4,17 +4,16 @@ module ServerSentEventGenerator.Types where
 import Control.Exception ( throw, Exception )
 import Data.ByteString.Builder ( Builder )
 import Data.Default ( Default(..) )
-import Data.Text ( Text )
-import ServerSentEventGenerator.Class ( ToText(..) )
+-- import Data.Text ( Text )
+import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Constants
 import ServerSentEventGenerator.Internal
     ( buildLines, withDefault )
 import qualified System.IO.Streams as Streams ( OutputStream )
-import Data.String
+-- import Data.String
 
 type SSEstream = Streams.OutputStream Builder
 newtype SSEapp = SSEapp (SSEstream -> IO ())
-type StringLike a = (Eq a, IsString a, Monoid a, ToText a)
 
 data Options a = O {
     eventId       :: a
@@ -27,25 +26,24 @@ instance StringLike a => Default (Options a) where
   , retryDuration = cDefaultSseRetryDurationMs
   }
 
+-- instance StringLike a => ToText (Options a) where
+--   toText options =
+--     let
+--       withSSEdefault value defaultValue field =
+--         if value ==  defaultValue then mempty
+--            else field <> cSColon <> toText value
+--       a = withSSEdefault  (eventId options) mempty cEventId
+--       b = withSSEdefault  (retryDuration options) cDefaultSseRetryDurationMs cRetryDuration
+--     in mconcat . buildLines $ [a,b]
 
-instance StringLike a => ToText (Options a) where
-  toText options =
-    let
-      withSSEdefault value defaultValue field =
-        if value ==  defaultValue then mempty
-           else field <> fromString ": " <> toText value
-      a = withSSEdefault  (eventId options) mempty cEventId
-      b = withSSEdefault  (retryDuration options) cDefaultSseRetryDurationMs cRetryDuration
-    in mconcat . buildLines $ [a,b]
-
-newtype Selector = SEL {unSelector :: Text}
+newtype Selector a = SEL {unSelector :: a}
   deriving (Show, Semigroup, Monoid, Eq)
 
-instance Default Selector where
-  def = SEL ""
+instance Monoid a => Default (Selector a) where
+  def = SEL mempty
 
-instance ToText Selector where
-  toText = withDefault cSelector cDefaultSelector . unSelector
+instance (StringLike a) => Prompt (Selector a) a where
+  prompt (SEL x) = withDefault cSelector cDefaultSelector x
     
 -- | A sum of the possible Datastar specific sse events that can be sent
 
@@ -57,6 +55,17 @@ data EventType =
   | ExecuteScript
   deriving (Eq, Show)
 
+instance Default EventType
+  where def = MergeFragments
+
+instance StringLike a => Prompt EventType a where
+  prompt MergeFragments   = cMergeFragments
+  prompt RemoveFragments  = cRemoveFragments
+  prompt MergeSignals     = cMergeSignals
+  prompt RemoveSignals    = cRemoveSignals
+  prompt ExecuteScript    = cExecuteScript
+
+
 data FunctionExecuteScript a =  FunctionExecuteScript {
     eType       :: EventType
   , eScript     :: a
@@ -64,16 +73,6 @@ data FunctionExecuteScript a =  FunctionExecuteScript {
   , eAutoRemove :: Bool
   , eOptions    :: Options a
   } deriving Show
-
--- instance Default (EventType a)
---   where def = MergeFragments a
-
-instance ToText EventType where
-  toText MergeFragments   = cMergeFragments
-  toText RemoveFragments  = cRemoveFragments
-  toText MergeSignals     = cMergeSignals
-  toText RemoveSignals    = cRemoveSignals
-  toText ExecuteScript    = cExecuteScript
 
 -- | A sum of the possible Datastar specific merge modes that can be sent
 
@@ -91,15 +90,15 @@ data MergeMode =
 instance Default MergeMode
   where def = Morph
 
-instance ToText MergeMode where
-   toText Morph            = cMorph
-   toText Inner            = cInner
-   toText Outer            = cOuter
-   toText Prepend          = cPrepend
-   toText Append           = cAppend
-   toText Before           = cBefore
-   toText After            = cAfter
-   toText UpsertAttributes = cUpsertAttributes
+instance StringLike a => Prompt MergeMode a where
+   prompt Morph            = cMorph
+   prompt Inner            = cInner
+   prompt Outer            = cOuter
+   prompt Prepend          = cPrepend
+   prompt Append           = cAppend
+   prompt Before           = cBefore
+   prompt After            = cAfter
+   prompt UpsertAttributes = cUpsertAttributes
 
 data FragmentOptions = FO {
     settleDuration    :: Int
@@ -114,17 +113,17 @@ instance Default FragmentOptions where
   , useViewTransition  = cDefaultUseViewTransition
   }
 
+instance StringLike a => Prompt FragmentOptions a where
+  prompt (FO a b) = mconcat . buildLines $ [
+      withDefault cSettleDuration    (prompt cDefaultSettleDurationMs)   (prompt a)
+    , withDefault cUseViewTransition (prompt cDefaultUseViewTransition)  (prompt b)
+    ]
+
 data Attributes a = ATR {
     aType     :: a
   , aBlocking :: Bool
   } deriving (Show)
 
-
-instance ToText FragmentOptions where
-  toText (FO a b) = mconcat . buildLines $ [
-      withDefault cSettleDuration    (toText cDefaultSettleDurationMs)   (toText a)
-    , withDefault cUseViewTransition (toText cDefaultUseViewTransition)  (toText b)
-    ]
 
 instance Show ServerSentEventGeneratorExceptions where
  show BuildLineDataIMissing           = "buildLine was call with nothing to build"

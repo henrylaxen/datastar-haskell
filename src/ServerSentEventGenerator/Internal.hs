@@ -3,9 +3,9 @@ module ServerSentEventGenerator.Internal where
 import Control.Concurrent ( newMVar, putMVar, takeMVar )
 import Control.Exception ( bracket )
 -- import Data.Functor.Identity ( Identity(..) )
-import Data.Text ( Text )
+import Data.Text ( Text, pack )
 import ServerSentEventGenerator.Class
-import ServerSentEventGenerator.Constants ( cData )
+import ServerSentEventGenerator.Constants
 import Data.String
 import qualified Data.Text.IO
 
@@ -52,18 +52,22 @@ do
 [data: prefix a]
 -}
 
-withDefault :: (Eq a, Monoid a, IsString a) => a -> a -> a -> a
+prefixed :: StringLike a => a -> a -> a
+prefixed name =  ( (cData <> cSColon <> name <> cSpace) <> )
+
+withDefault :: StringLike a => a -> a -> a -> a
 withDefault dStarEvent defaultValue value =
   if value == defaultValue || value == mempty
   then mempty
-  else cData <> ": " <> dStarEvent <> " " <>  value
+  else prefixed dStarEvent value
+--  else cData <> cSColon <> dStarEvent <> cSpace <>  value
 
 -- | Insert "data: " and the given text in front of each element of the list
 -- | >>> withList "fragments" ["l1","l2"]
 --   ["data: fragments l1","data: fragments l2"]
 
-withList :: (Monoid a, IsString a) => a -> [a] -> [a]
-withList name =  Prelude.map (\x -> cData <> ": " <> name <> " " <> x)
+withList :: StringLike a => a -> [a] -> [a]
+withList name =  Prelude.map (prefixed name)
 
 singleThreaded :: IO () -> IO ()
 singleThreaded action = bracket
@@ -83,5 +87,5 @@ test = mapM_ ps
 -- -- sendM :: IsString a => [a] -> IO ()
 -- sendM ts =  singleThreaded (mapM_ sse ts)
 
-ps :: ToText a => a ->  IO ()
-ps =  Data.Text.IO.putStr . toText
+ps :: Text ->  IO ()
+ps =  Data.Text.IO.putStr . pack . show

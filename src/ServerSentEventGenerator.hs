@@ -73,14 +73,10 @@ sseHeaders = do
 --   This works, because if the options are equal to their defaults, they will
 --   be removed from the output
 
--- sendPure :: EventType -> [Text] -> Options -> Text
--- sendPure :: IsString a => EventType -> [a] -> Options -> b
-sendPure :: StringLike a  => EventType -> [Text] -> Options a -> Text
-sendPure eventType dataLines options = mconcat (buildLines (a:b:dataLines)) <> "\n\n"
+sendPure :: StringLike a => EventType -> [a] -> a -> a
+sendPure eventType dataLines options = mconcat (buildLines (a:options:dataLines)) <> "\n\n"
   where
-    a = "event: " <> toText eventType
-    b = toText options
-
+    a = "event: " <> toPrompt eventType
 {- | >>> :{
 do
   let
@@ -134,13 +130,14 @@ data: fragments line 2
 -- mergeFragments
 --   :: (ToText p1, ToText p2, ToText p3, IsString a) =>
 --      [a] -> p3 -> p2 -> p1 -> Options -> Text
-mergeFragments :: StringLike a => [Text] -> Selector -> MergeMode -> FragmentOptions -> Options a -> Text
+-- mergeFragments :: StringLike a => [Text] -> Selector -> MergeMode -> FragmentOptions -> Options a -> Text
 mergeFragments fragments selector mode fragOptions =  sendPure MergeFragments (buildLines (a:b:c:d))
   where
     a = toText selector
     b = withDefault cMerge cDefaultMergeMode (toText mode)
     c = toText fragOptions
     d = withList cFragments fragments
+{-
 
 
 {- | >>> :{
@@ -292,7 +289,7 @@ data: attributes type text/javascript
 
 -- ??bug?? Maybe? sse.py allows the script to be empty, and type is array
 --                README.md does not specify, and type is string
-executeScript :: StringLike a => [Text] -> [Text] -> Bool -> Options a -> Text
+executeScript :: StringLike a => [a] -> [a] -> Bool -> Options a -> a
 executeScript script attributes autoRemove = sendPure ExecuteScript (buildLines (a <> b <> [c]))
   where
     a = withList cExecuteScript script
@@ -317,3 +314,4 @@ toPre x = "<pre>" :
 
   
 
+-}

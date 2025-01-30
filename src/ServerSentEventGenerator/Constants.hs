@@ -1,6 +1,6 @@
 module ServerSentEventGenerator.Constants where
 
-import Data.String
+import ServerSentEventGenerator.Class (StringLike)
 
 
 -- taken from consts.ts
@@ -10,14 +10,14 @@ import Data.String
 -- a function call in front of each data constructor, so I
 -- decided to just use the prefix "c"
 
-cDATASTAR, cDATASTAR_EVENT, cDATASTAR_REQUEST, cVERSION, cMorph        :: IsString a => a
-cInner, cOuter, cPrepend, cAppend, cBefore, cAfter, cUpsertAttributes  :: IsString a => a
-cMergeFragments, cMergeSignals, cRemoveFragments, cRemoveSignals       :: IsString a => a
-cExecuteScript, cSelector, cMerge, cSettleDuration, cFragments         :: IsString a => a
-cUseViewTransition, cSignals, cOnlyIfMissing, cPaths, cScript          :: IsString a => a
-cAttributes, cAutoRemove, cDefaultAttributes                           :: IsString a => a
-cEventId, cDefaultEventId, cRetryDuration                              :: IsString a => a
-cDefaultSelector, cDefaultMergeMode                                    :: IsString a => a
+cDATASTAR, cDATASTAR_EVENT, cDATASTAR_REQUEST, cVERSION, cMorph        :: StringLike a => a
+cInner, cOuter, cPrepend, cAppend, cBefore, cAfter, cUpsertAttributes  :: StringLike a => a
+cMergeFragments, cMergeSignals, cRemoveFragments, cRemoveSignals       :: StringLike a => a
+cExecuteScript, cSelector, cMerge, cSettleDuration, cFragments         :: StringLike a => a
+cUseViewTransition, cSignals, cOnlyIfMissing, cPaths, cScript          :: StringLike a => a
+cAttributes, cAutoRemove, cDefaultAttributes                           :: StringLike a => a
+cEventId, cDefaultEventId, cRetryDuration                              :: StringLike a => a
+cDefaultSelector, cDefaultMergeMode                                    :: StringLike a => a
 
 cDefaultSettleDurationMs, cDefaultSseRetryDurationMs                   :: Int
 cDefaultFragmentsUseViewTransitions                                    :: Bool
@@ -66,13 +66,18 @@ cEventId                            =  "id"
 cRetryDuration                      =  "retry"
 cAutoRemove                         =  "autoRemove"
 -- added by henry
-cData :: IsString a => a
+
+cData, cEvent, cSColon, cSpace, cType,cBlocking :: StringLike a => a
+cDefaultBlocking :: Bool
 cData                               =  "data"
-cEvent :: IsString a => a
 cEvent                              =  "event"
-cSpace :: IsString a => a
-cSpace                              =  ": "
-  
+cSColon                             =  ": "
+cSpace                              =  " "
+cType                               = "type"
+cBlocking                           = "blocking"
+cDefaultBlocking                   = False
+
+
 -- DATASTAR_KEY =  "datastar"
 -- VERSION                   =  "1.0.0-beta.1"
 -- VERSION_CLIENT_BYTE_SIZE     =  36235

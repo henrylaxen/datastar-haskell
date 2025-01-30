@@ -81,7 +81,7 @@ instance HttpVersion Snap  where
 handleException :: ThreadId -> String -> SomeException -> IO ()
 handleException t s e = do
   killThread t
-  ps (s <> ": " <> displayException e)
+  ps (s <> cSColon <> displayException e)
   throwIO e
 
 {- | >>> :{

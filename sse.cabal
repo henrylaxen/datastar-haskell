@@ -44,7 +44,9 @@ common default-extensions
   default-extensions:
         ConstraintKinds
       , FlexibleInstances
+      , FunctionalDependencies
       , GeneralizedNewtypeDeriving
+      , MultiParamTypeClasses
       , OverloadedStrings
       , QuasiQuotes
       , RecordWildCards

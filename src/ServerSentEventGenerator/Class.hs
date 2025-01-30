@@ -4,11 +4,11 @@ module ServerSentEventGenerator.Class where
 import Data.Default ( Default(..) )
 import Data.Functor.Identity ( Identity(..) )
 import Data.ByteString.Builder
-import qualified Data.Text as T
+-- import qualified Data.Text as T
 import Data.Text ( Text )
 -- import qualified System.IO.Streams as Streams
 -- import Data.ByteString.Lazy
--- import Data.String
+import Data.String
 -- import System.IO.Streams.Handle
 -- import Debug.Trace ( trace )
 
@@ -31,22 +31,47 @@ instance Default Text where
 --   -- | Could be handy for debugging
 --   sse = Data.Text.IO.putStr 
 
-class ToText a where
-  toText :: a -> Text
+-- class IsString b => Prompt a b | a -> b where
+--   toPrompt :: a -> b
 
-instance ToText Text where
-  toText = id
+-- class ToText a where
+--   toText :: a -> Text
 
-instance ToText String where
-  toText = T.pack
+-- instance ToText Text where
+--   toText = id
 
-instance  ToText Int where
-  toText = T.pack . show
+-- instance ToText String where
+--   toText = T.pack
 
-instance  ToText Bool where
-  toText True  = "true"
-  toText False = "false"
+-- instance  ToText Int where
+--   toText = T.pack . show
 
-instance ToText Builder where
-  toText = toText . show
+-- instance  ToText Bool where
+--   toText True  = "true"
+--   toText False = "false"
 
+-- instance ToText Builder where
+--   toText = toText . show
+
+-- class StringLike a -> Prompt a where
+--   toPrompt 
+
+type StringLike a = (Eq a, IsString a, Monoid a)
+
+-- | I need a way to go from a Datastar type to a StringLike thing that can be
+--   sent to the browser.  The Prompt class lets me do things like
+--   prompt MergeFragments = "datastar-merge-fragments" without specifying
+--   the exact type of the StringLike "datastar-merge-fragments"
+
+class StringLike b => Prompt a b  where
+  prompt :: a -> b
+    
+instance StringLike a => Prompt Bool a where
+  prompt True  = "true"
+  prompt False = "false"
+
+instance StringLike a => Prompt Int a where
+  prompt = fromString . show
+
+instance Eq Builder where
+  a == b = toLazyByteString a == toLazyByteString b
