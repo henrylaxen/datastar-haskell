@@ -10,26 +10,30 @@ import ServerSentEventGenerator.Constants
 import ServerSentEventGenerator.Internal
     ( buildLines, withDefault )
 import qualified System.IO.Streams as Streams ( OutputStream )
+import Data.String
 
 type SSEstream = Streams.OutputStream Builder
 newtype SSEapp = SSEapp (SSEstream -> IO ())
+type StringLike a = (Eq a, IsString a, Monoid a, ToText a)
 
-data Options = O {
-    eventId       :: Text
+data Options a = O {
+    eventId       :: a
   , retryDuration :: Int
   } deriving (Show)
-instance Default Options where
+
+instance StringLike a => Default (Options a) where
   def = O {
-    eventId = def
+    eventId = mempty
   , retryDuration = cDefaultSseRetryDurationMs
   }
 
-instance ToText Options where
+
+instance StringLike a => ToText (Options a) where
   toText options =
     let
       withSSEdefault value defaultValue field =
         if value ==  defaultValue then mempty
-           else field <> ": " <> toText value
+           else field <> fromString ": " <> toText value
       a = withSSEdefault  (eventId options) mempty cEventId
       b = withSSEdefault  (retryDuration options) cDefaultSseRetryDurationMs cRetryDuration
     in mconcat . buildLines $ [a,b]
@@ -53,8 +57,16 @@ data EventType =
   | ExecuteScript
   deriving (Eq, Show)
 
-instance Default EventType
-  where def = MergeFragments
+data FunctionExecuteScript a =  FunctionExecuteScript {
+    eType       :: EventType
+  , eScript     :: a
+  , eAttributes :: Attributes a
+  , eAutoRemove :: Bool
+  , eOptions    :: Options a
+  } deriving Show
+
+-- instance Default (EventType a)
+--   where def = MergeFragments a
 
 instance ToText EventType where
   toText MergeFragments   = cMergeFragments
@@ -102,6 +114,12 @@ instance Default FragmentOptions where
   , useViewTransition  = cDefaultUseViewTransition
   }
 
+data Attributes a = ATR {
+    aType     :: a
+  , aBlocking :: Bool
+  } deriving (Show)
+
+
 instance ToText FragmentOptions where
   toText (FO a b) = mconcat . buildLines $ [
       withDefault cSettleDuration    (toText cDefaultSettleDurationMs)   (toText a)
@@ -128,3 +146,4 @@ data ServerSentEventGeneratorExceptions =
  | ExecuteScriptIsMissing          
 
 instance Exception ServerSentEventGeneratorExceptions
+

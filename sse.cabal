@@ -42,7 +42,8 @@ common deps
 
 common default-extensions
   default-extensions:
-        FlexibleInstances
+        ConstraintKinds
+      , FlexibleInstances
       , GeneralizedNewtypeDeriving
       , OverloadedStrings
       , QuasiQuotes

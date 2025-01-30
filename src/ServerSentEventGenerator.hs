@@ -34,7 +34,7 @@ import ServerSentEventGenerator.Constants
 import ServerSentEventGenerator.Internal
 import ServerSentEventGenerator.Types
 import qualified Data.Text as T ( lines )
-import Data.String
+-- import Data.String
 
 -- $setup
 -- >>> import Data.Functor.Identity
@@ -75,7 +75,7 @@ sseHeaders = do
 
 -- sendPure :: EventType -> [Text] -> Options -> Text
 -- sendPure :: IsString a => EventType -> [a] -> Options -> b
-sendPure :: EventType -> [Text] -> Options -> Text
+sendPure :: StringLike a  => EventType -> [Text] -> Options a -> Text
 sendPure eventType dataLines options = mconcat (buildLines (a:b:dataLines)) <> "\n\n"
   where
     a = "event: " <> toText eventType
@@ -134,14 +134,14 @@ data: fragments line 2
 -- mergeFragments
 --   :: (ToText p1, ToText p2, ToText p3, IsString a) =>
 --      [a] -> p3 -> p2 -> p1 -> Options -> Text
-mergeFragments :: [Text] -> Selector -> MergeMode -> FragmentOptions -> Options -> Text
+mergeFragments :: StringLike a => [Text] -> Selector -> MergeMode -> FragmentOptions -> Options a -> Text
 mergeFragments fragments selector mode fragOptions =  sendPure MergeFragments (buildLines (a:b:c:d))
   where
     a = toText selector
     b = withDefault cMerge cDefaultMergeMode (toText mode)
     c = toText fragOptions
     d = withList cFragments fragments
-{-
+
 
 {- | >>> :{
 do
@@ -178,7 +178,7 @@ data: settleDuration 1
 -}
 
 -- ??Bug?? in sse.py, the selector is made optional
-removeFragments :: Selector  -> FragmentOptions -> Options -> Text
+removeFragments :: StringLike a => Selector  -> FragmentOptions -> Options a -> Text
 removeFragments selector fragOptions = sendPure RemoveFragments (buildLines [a,b])
   where
     s = toText selector
@@ -215,7 +215,7 @@ data: onlyIfMissing true
 -- an empty list a valid mergeSignals request, which might be more
 -- convenient for programmers.  Of course it's up to you.
 -- if array -> mergeSignals :: [Text] -> Bool -> Options -> Text
-mergeSignals :: Text -> Bool -> Options -> Text
+mergeSignals :: StringLike a => Text -> Bool -> Options a -> Text
 mergeSignals signals onlyIfMissing = sendPure MergeSignals (buildLines [a,b])
   where
     a = if (toText signals) == mempty
@@ -252,7 +252,7 @@ data: datastar-remove-signals position
 
 -- ??bug?? Maybe? sse.py allows the paths to be empty,
 --                README.md does not specify
-removeSignals :: [Text] -> Options -> Text
+removeSignals :: StringLike a => [Text] -> Options a -> Text
 removeSignals paths = sendPure RemoveSignals (buildLines c)
   where
     c = withList cRemoveSignals paths
@@ -292,7 +292,7 @@ data: attributes type text/javascript
 
 -- ??bug?? Maybe? sse.py allows the script to be empty, and type is array
 --                README.md does not specify, and type is string
-executeScript ::  [Text] -> [Text] -> Bool -> Options -> Text
+executeScript :: StringLike a => [Text] -> [Text] -> Bool -> Options a -> Text
 executeScript script attributes autoRemove = sendPure ExecuteScript (buildLines (a <> b <> [c]))
   where
     a = withList cExecuteScript script
@@ -316,4 +316,4 @@ toPre x = "<pre>" :
           ["</pre>" ]
 
   
--}
+

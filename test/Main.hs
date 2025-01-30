@@ -113,16 +113,16 @@ js1 = [untrimming|{"events":
     
 --     object [Key.fromText cEventId .?= eventId, Key.fromText cRetryDuration .?= retryDuration]
 
-instance ToJSON Options where
-    toJSON opts = object [
-        "eventId"       .= eventId opts
-      , "retryDuration" .= retryDuration opts
-      ]
+instance ToJSON a => ToJSON (Options a) where
+  toJSON O{..} = object [
+        cEventId .= eventId,
+        cRetryDuration .= retryDuration
+    ]
 
-instance FromJSON Options where
-    parseJSON = withObject "Options" $ \v -> O
-        <$> v .:? cEventId       .!= eventId def
-        <*> v .:? cRetryDuration .!= retryDuration def
+instance (Monoid a, FromJSON a) => FromJSON (Options a) where
+  parseJSON = withObject "Options" $ \v -> O
+        <$> v .:? cEventId .!= mempty
+        <*> v .:? cRetryDuration .!= cDefaultSseRetryDurationMs
 
 instance ToJSON Selector where
     toJSON (SEL x) = String x
