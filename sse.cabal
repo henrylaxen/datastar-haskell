@@ -46,6 +46,7 @@ common default-extensions
       , GeneralizedNewtypeDeriving
       , OverloadedStrings
       , QuasiQuotes
+      , RecordWildCards
       , ScopedTypeVariables
       , TemplateHaskell
       , TypeSynonymInstances

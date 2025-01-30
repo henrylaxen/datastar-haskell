@@ -8,8 +8,8 @@ module Main where
 -- import Data.ByteString.Lazy
 -- import Data.Maybe ( fromMaybe )
 -- import Data.Time ( getCurrentTime )
--- import ServerSentEventGenerator.Types
--- import ServerSentEventGenerator.Constants
+import ServerSentEventGenerator.Types
+import ServerSentEventGenerator.Constants
 -- import Snap
 -- import System.IO
 --     ( stdout, hSetBuffering, stderr, BufferMode(NoBuffering) )
@@ -121,8 +121,8 @@ instance ToJSON Options where
 
 instance FromJSON Options where
     parseJSON = withObject "Options" $ \v -> O
-        <$> v .:? "eventId"       .!= eventId def
-        <*> v .:? "retryDuration" .!= retryDuration def
+        <$> v .:? cEventId       .!= eventId def
+        <*> v .:? cRetryDuration .!= retryDuration def
 
 instance ToJSON Selector where
     toJSON (SEL x) = String x
@@ -130,16 +130,61 @@ instance ToJSON Selector where
     -- toJSON = String . unSelector
 
 instance FromJSON Selector where
-    parseJSON = withText "Selector" $ \t ->
+    parseJSON = withText cSelector $ \t ->
         pure $ SEL t
 
 -- t3a =  toJSON $ SEL "#idx"
 -- t3b =  toJSON $ SEL ""
 -- t3 = (t3a,t3b)
 
-data A a = A {a :: a}
+instance ToJSON EventType where
+    toJSON MergeFragments         = String cMergeFragments
+    toJSON RemoveFragments        = String cRemoveFragments
+    toJSON MergeSignals           = String cMergeSignals
+    toJSON RemoveSignals          = String cRemoveSignals
+    toJSON ExecuteScript          = String cExecuteScript
 
-x :: IsString a => a
-x = "x"
+instance FromJSON EventType where
+    parseJSON (String s)
+        | s == cMergeFragments    = pure MergeFragments
+        | s == cRemoveFragments   = pure RemoveFragments
+        | s == cMergeSignals      = pure MergeSignals
+        | s == cRemoveSignals     = pure RemoveSignals
+        | s == cExecuteScript     = pure ExecuteScript
+        | otherwise               = fail $ "Invalid EventType: " ++ show s
+    parseJSON invalid             = fail $ "Invalid EventType: " ++ show invalid
 
+instance ToJSON MergeMode where
+    toJSON Morph                  = String cMorph
+    toJSON Inner                  = String cInner
+    toJSON Outer                  = String cOuter
+    toJSON Prepend                = String cPrepend
+    toJSON Append                 = String cAppend
+    toJSON Before                 = String cBefore
+    toJSON After                  = String cAfter
+    toJSON UpsertAttributes       = String cUpsertAttributes
 
+instance FromJSON MergeMode where
+    parseJSON (String s)
+        | s == cMorph             = pure Morph
+        | s == cInner             = pure Inner
+        | s == cOuter             = pure Outer
+        | s == cPrepend           = pure Prepend
+        | s == cAppend            = pure Append
+        | s == cBefore            = pure Before
+        | s == cAfter             = pure After
+        | s == cUpsertAttributes  = pure UpsertAttributes
+        | otherwise               = fail $ "Invalid MergeMode: " ++ show s
+    parseJSON invalid             = fail $ "Invalid MergeMode: " ++ show invalid
+
+instance ToJSON FragmentOptions where
+    toJSON FO{..} = object [
+        cSettleDuration    .= settleDuration,
+        cUseViewTransition .= useViewTransition
+      ]
+
+instance FromJSON FragmentOptions where
+    parseJSON = withObject "FragmentOptions" $ \v -> FO
+        <$> v .:? cSettleDuration    .!= settleDuration    def
+        <*> v .:? cUseViewTransition .!= useViewTransition def
+ 

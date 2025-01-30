@@ -131,10 +131,10 @@ data: fragments line 2
 -- | Insert "data: " and the given text in front of each element of the list
 -- | >>> withList "fragments" ["l1","l2"]
 --   ["data: fragments l1","data: fragments l2"]
--- mergeFragments :: [Text] -> Selector -> MergeMode -> FragmentOptions -> Options -> Text
-mergeFragments
-  :: (ToText p1, ToText p2, ToText p3, IsString a) =>
-     [a] -> p3 -> p2 -> p1 -> Options -> Text
+-- mergeFragments
+--   :: (ToText p1, ToText p2, ToText p3, IsString a) =>
+--      [a] -> p3 -> p2 -> p1 -> Options -> Text
+mergeFragments :: [Text] -> Selector -> MergeMode -> FragmentOptions -> Options -> Text
 mergeFragments fragments selector mode fragOptions =  sendPure MergeFragments (buildLines (a:b:c:d))
   where
     a = toText selector
