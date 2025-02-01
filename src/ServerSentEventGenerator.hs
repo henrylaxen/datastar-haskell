@@ -33,7 +33,7 @@ import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Constants
 import ServerSentEventGenerator.Internal
 import ServerSentEventGenerator.Types
-import qualified Data.Text as T ( lines )
+-- import qualified Data.Text as T ( lines )
 -- import Data.String
 
 -- $setup
@@ -41,8 +41,6 @@ import qualified Data.Text as T ( lines )
 -- >>> import Data.Maybe
 -- >>> import Control.Exception
 
-
--- ??Bug?? in sse.py, the event_id is an Int
 
 -- | returns the Http header for an SSE depending
 --   on the Http version you are using. Note: you will
@@ -73,10 +71,11 @@ sseHeaders = do
 --   This works, because if the options are equal to their defaults, they will
 --   be removed from the output
 
-sendPure :: StringLike a => EventType -> [a] -> a -> a
-sendPure eventType dataLines options = mconcat (buildLines (a:options:dataLines)) <> "\n\n"
+sendPure :: EventType -> [Text] -> Options -> Text
+sendPure eventType dataLines options = mconcat (buildLines (a:b:dataLines)) <> "\n\n"
   where
-    a = "event: " <> toPrompt eventType
+    a = "event: " <> prompt eventType
+    b = prompt options
 {- | >>> :{
 do
   let
@@ -131,14 +130,13 @@ data: fragments line 2
 --   :: (ToText p1, ToText p2, ToText p3, IsString a) =>
 --      [a] -> p3 -> p2 -> p1 -> Options -> Text
 -- mergeFragments :: StringLike a => [Text] -> Selector -> MergeMode -> FragmentOptions -> Options a -> Text
+mergeFragments  :: Text -> Selector -> MergeMode -> FragmentOptions -> Options -> Text
 mergeFragments fragments selector mode fragOptions =  sendPure MergeFragments (buildLines (a:b:c:d))
   where
-    a = toText selector
-    b = withDefault cMerge cDefaultMergeMode (toText mode)
-    c = toText fragOptions
+    a = prompt selector
+    b = withDefault cMerge cDefaultMergeMode (prompt mode)
+    c = prompt fragOptions
     d = withList cFragments fragments
-{-
-
 
 {- | >>> :{
 do
@@ -174,13 +172,12 @@ data: settleDuration 1
 <BLANKLINE>
 -}
 
--- ??Bug?? in sse.py, the selector is made optional
-removeFragments :: StringLike a => Selector  -> FragmentOptions -> Options a -> Text
+removeFragments :: Selector  -> FragmentOptions -> Options -> Text
 removeFragments selector fragOptions = sendPure RemoveFragments (buildLines [a,b])
   where
-    s = toText selector
+    s = prompt selector
     a = if s == def then bug RemoveFragmentSelectorIsMissing else s
-    b = toText fragOptions
+    b = prompt fragOptions
 
 {- | >>> :{
 do
@@ -206,20 +203,13 @@ data: onlyIfMissing true
 <BLANKLINE>
 -}
 
--- ??Bug?? in sse.py or README.md,
--- sse.py has signals as an array, README.md has signals as a string
--- I think it would be better if it were an array. That would also make
--- an empty list a valid mergeSignals request, which might be more
--- convenient for programmers.  Of course it's up to you.
--- if array -> mergeSignals :: [Text] -> Bool -> Options -> Text
-mergeSignals :: StringLike a => Text -> Bool -> Options a -> Text
+mergeSignals ::  Text -> Bool -> Options -> Text
 mergeSignals signals onlyIfMissing = sendPure MergeSignals (buildLines [a,b])
   where
-    a = if (toText signals) == mempty
+    a = if signals == mempty
           then bug SignalsSelectorIsMissing
-          else withDefault cSignals "" (toText signals)
--- if array -> else withList cSignals signals
-    b = withDefault cOnlyIfMissing (toText cDefaultOnlyIfMissing) (toText onlyIfMissing)
+          else withDefault cSignals "" signals
+    b = withDefault cOnlyIfMissing (prompt cDefaultOnlyIfMissing) (prompt onlyIfMissing)
 
 {- | >>> :{
 do
@@ -247,9 +237,7 @@ data: datastar-remove-signals position
 <BLANKLINE>
 -}
 
--- ??bug?? Maybe? sse.py allows the paths to be empty,
---                README.md does not specify
-removeSignals :: StringLike a => [Text] -> Options a -> Text
+removeSignals :: Text -> Options -> Text
 removeSignals paths = sendPure RemoveSignals (buildLines c)
   where
     c = withList cRemoveSignals paths
@@ -287,31 +275,14 @@ data: attributes type text/javascript
 <BLANKLINE>
 -}
 
--- ??bug?? Maybe? sse.py allows the script to be empty, and type is array
---                README.md does not specify, and type is string
-executeScript :: StringLike a => [a] -> [a] -> Bool -> Options a -> a
-executeScript script attributes autoRemove = sendPure ExecuteScript (buildLines (a <> b <> [c]))
+executeScript :: Text -> Text -> Bool -> Options -> Text
+executeScript script attributes autoRemove = sendPure ExecuteScript (buildLines (a : b <> [c]))
   where
-    a = withList cExecuteScript script
-    b = if Prelude.null attributes
+    a = prefixed cExecuteScript script 
+    b = if attributes == ""
           then [cData <> ": " <> cAttributes <> " " <> cDefaultAttributes]
           else withList cAttributes attributes
-    c = withDefault cAutoRemove (toText cDefaultAutoRemove) (toText autoRemove)
+    c = withDefault cAutoRemove (prompt cDefaultAutoRemove) (prompt autoRemove)
 
-toPreLine :: Text -> [Text]
-toPreLine = Prelude.map oneLine . T.lines
-  where
-   oneLine x = "." <> x
 
--- | Takes a chunk of text, breaks into a list on newlines, add a
---   period to beginning of each line, and wraps the resut in a
---   <pre> ... </pre> tag
 
-toPre :: Text -> [Text]
-toPre x = "<pre>" :
-          toPreLine x <>
-          ["</pre>" ]
-
-  
-
--}

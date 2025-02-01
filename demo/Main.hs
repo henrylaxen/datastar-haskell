@@ -6,12 +6,13 @@ import Control.Monad ( foldM_ )
 import Control.Monad.IO.Class ( MonadIO(liftIO) )
 import Data.Default ( Default(def) )
 import Data.Maybe ( fromMaybe )
-import Data.Text ( Text )
+import Data.Text ( Text, lines )
 import Data.Time ( getCurrentTime )
 import ServerSentEventGenerator
 import Snap
 import Snap.Util.FileServe ( serveDirectory )
-import ServerSentEventGenerator.Server.Snap ( runSSE, send )
+import ServerSentEventGenerator.Server.Snap
+import ServerSentEventGenerator.Types
 import System.IO
     ( stdout, hSetBuffering, stderr, BufferMode(NoBuffering) )
 import qualified HTMLEntities.Text ( text )
@@ -23,7 +24,7 @@ main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
   hSetBuffering stderr NoBuffering
-  indexFile <- T.readFile "src/demo/www/index.html"
+  indexFile <- T.readFile "demo/www/index.html"
   let
     indexText = T.replace "<replacedByThisPageHere>" (replacement indexFile) indexFile
     mbPort    = getPort (defaultConfig :: Config Snap a)
@@ -43,7 +44,7 @@ site indexText =
       , ("feed"        , handlerFeed)
       , ("keats"       , handlerKeats)
       , ("signals"     , handlerSignals)
-      ] <|> serveDirectory "src/demo/www"
+      ] <|> serveDirectory "demo/www"
 
 handlerSignals  :: Snap ()
 handlerSignals = do
@@ -60,7 +61,7 @@ handlerSignals = do
       , "\nBody\n"
       , body
       , "\nEnd\n" ]
-    ds = mergeFragments (toPre output) (SEL "#signals") Inner def def
+    ds = mergeFragments output (SEL "#signals") Inner def def
   liftIO $ putStrLn (T.unpack output)
   runSSE (SSEapp (send ds))
 
@@ -95,18 +96,19 @@ handlerFeed = do
     sleeping = "Sleeping for 70 seconds, but continuing to ping"
     allDone  = "All Done"
     feedDstar :: Text -> Text
-    feedDstar x = mergeFragments ["<div id=\"feed\"><b>" <> x <> "</b></div>"] def def def def
+    feedDstar x = mergeFragments ("<div id=\"feed\"><b>" <> x <> "</b></div>") def def def def
     removeDstar :: Text
     removeDstar = removeFragments (SEL "#explain") (FO 5000 def) def
 
 handlerKeats :: Snap ()
 handlerKeats = do
   liftIO $ putStrLn "Keats"
-  ode <- liftIO  $ T.readFile "src/demo/www/keats.txt"
+  ode <- liftIO  $ T.readFile "demo/www/keats.txt"
   runSSE (SSEapp (f ode))
   where
     f ::  Text -> SSEstream -> IO ()
-    f ode w =  singleThreaded $ foldM_ (\x -> foldSlowly w x) mempty (T.unpack ode)
+    f ode w =  foldM_ (\x -> foldSlowly w x) mempty (T.unpack ode)
+--     f ode w =  singleThreaded $ foldM_ (\x -> foldSlowly w x) mempty (T.unpack ode)
     keatsDstar :: Text -> Text
     keatsDstar x = mergeFragments (toPre x) (SEL "#keats") Inner def def
     foldSlowly :: SSEstream -> Text ->  Char -> IO Text
@@ -121,4 +123,20 @@ pause = threadDelay (10 * 100 * 100 `div` 2)
 
 sleep :: Int -> IO ()
 sleep n = threadDelay (n * 1000 * 1000)
+
+toPreLine :: Text -> [Text]
+toPreLine = Prelude.map oneLine . Data.Text.lines
+  where
+   oneLine x = "." <> x
+
+-- | Takes a chunk of text, breaks into a list on newlines, add a
+--   period to beginning of each line, and wraps the resut in a
+--   <pre> ... </pre> tag
+
+toPre :: Text -> Text
+toPre x = mconcat $
+  "<pre>" :
+  toPreLine x <>
+  ["</pre>" ]
+
 

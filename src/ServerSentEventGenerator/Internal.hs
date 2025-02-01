@@ -3,7 +3,7 @@ module ServerSentEventGenerator.Internal where
 import Control.Concurrent ( newMVar, putMVar, takeMVar )
 import Control.Exception ( bracket )
 -- import Data.Functor.Identity ( Identity(..) )
-import Data.Text ( Text, pack )
+import Data.Text ( Text, pack, lines )
 import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Constants
 import Data.String
@@ -66,8 +66,8 @@ withDefault dStarEvent defaultValue value =
 -- | >>> withList "fragments" ["l1","l2"]
 --   ["data: fragments l1","data: fragments l2"]
 
-withList :: StringLike a => a -> [a] -> [a]
-withList name =  Prelude.map (prefixed name)
+withList :: Text -> Text -> [Text]
+withList name =  Prelude.map (prefixed name) . Data.Text.lines
 
 singleThreaded :: IO () -> IO ()
 singleThreaded action = bracket

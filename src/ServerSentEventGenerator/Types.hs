@@ -4,7 +4,7 @@ module ServerSentEventGenerator.Types where
 import Control.Exception ( throw, Exception )
 import Data.ByteString.Builder ( Builder )
 import Data.Default ( Default(..) )
--- import Data.Text ( Text )
+import Data.Text ( Text, pack )
 import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Constants
 import ServerSentEventGenerator.Internal
@@ -15,34 +15,32 @@ import qualified System.IO.Streams as Streams ( OutputStream )
 type SSEstream = Streams.OutputStream Builder
 newtype SSEapp = SSEapp (SSEstream -> IO ())
 
-data Options a = O {
-    eventId       :: a
+data Options = O {
+    eventId       :: Text
   , retryDuration :: Int
   } deriving (Show)
 
-instance StringLike a => Default (Options a) where
+instance Default Options where
   def = O {
     eventId = mempty
   , retryDuration = cDefaultSseRetryDurationMs
   }
 
--- instance StringLike a => ToText (Options a) where
---   toText options =
---     let
---       withSSEdefault value defaultValue field =
---         if value ==  defaultValue then mempty
---            else field <> cSColon <> toText value
---       a = withSSEdefault  (eventId options) mempty cEventId
---       b = withSSEdefault  (retryDuration options) cDefaultSseRetryDurationMs cRetryDuration
---     in mconcat . buildLines $ [a,b]
+instance Prompt Options where
+  prompt options =
+    let
+      a = eventId options
+      b = if retryDuration options == cDefaultSseRetryDurationMs
+        then "" else pack . show $ retryDuration options
+    in mconcat . buildLines $ [a,b]
 
-newtype Selector a = SEL {unSelector :: a}
+newtype Selector = SEL {unSelector :: Text}
   deriving (Show, Semigroup, Monoid, Eq)
 
-instance Monoid a => Default (Selector a) where
+instance Default Selector where
   def = SEL mempty
 
-instance (StringLike a) => Prompt (Selector a) a where
+instance Prompt Selector where
   prompt (SEL x) = withDefault cSelector cDefaultSelector x
     
 -- | A sum of the possible Datastar specific sse events that can be sent
@@ -58,7 +56,7 @@ data EventType =
 instance Default EventType
   where def = MergeFragments
 
-instance StringLike a => Prompt EventType a where
+instance Prompt EventType where
   prompt MergeFragments   = cMergeFragments
   prompt RemoveFragments  = cRemoveFragments
   prompt MergeSignals     = cMergeSignals
@@ -66,12 +64,12 @@ instance StringLike a => Prompt EventType a where
   prompt ExecuteScript    = cExecuteScript
 
 
-data FunctionExecuteScript a =  FunctionExecuteScript {
+data FunctionExecuteScript =  FunctionExecuteScript {
     eType       :: EventType
-  , eScript     :: a
-  , eAttributes :: Attributes a
+  , eScript     :: Text
+  , eAttributes :: Attributes
   , eAutoRemove :: Bool
-  , eOptions    :: Options a
+  , eOptions    :: Options
   } deriving Show
 
 -- | A sum of the possible Datastar specific merge modes that can be sent
@@ -90,7 +88,7 @@ data MergeMode =
 instance Default MergeMode
   where def = Morph
 
-instance StringLike a => Prompt MergeMode a where
+instance Prompt MergeMode where
    prompt Morph            = cMorph
    prompt Inner            = cInner
    prompt Outer            = cOuter
@@ -113,14 +111,14 @@ instance Default FragmentOptions where
   , useViewTransition  = cDefaultUseViewTransition
   }
 
-instance StringLike a => Prompt FragmentOptions a where
+instance Prompt FragmentOptions where
   prompt (FO a b) = mconcat . buildLines $ [
       withDefault cSettleDuration    (prompt cDefaultSettleDurationMs)   (prompt a)
     , withDefault cUseViewTransition (prompt cDefaultUseViewTransition)  (prompt b)
     ]
 
-data Attributes a = ATR {
-    aType     :: a
+data Attributes = ATR {
+    aType     :: Text
   , aBlocking :: Bool
   } deriving (Show)
 

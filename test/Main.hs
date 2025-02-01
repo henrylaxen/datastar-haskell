@@ -113,13 +113,13 @@ js1 = [untrimming|{"events":
     
 --     object [Key.fromText cEventId .?= eventId, Key.fromText cRetryDuration .?= retryDuration]
 
-instance ToJSON a => ToJSON (Options a) where
+instance ToJSON Options where
   toJSON O{..} = object [
         cEventId .= eventId,
         cRetryDuration .= retryDuration
     ]
 
-instance (Monoid a, FromJSON a) => FromJSON (Options a) where
+instance FromJSON Options where
   parseJSON = withObject "Options" $ \v -> O
         <$> v .:? cEventId .!= mempty
         <*> v .:? cRetryDuration .!= cDefaultSseRetryDurationMs

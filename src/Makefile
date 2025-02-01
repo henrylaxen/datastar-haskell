@@ -17,6 +17,8 @@ clean:
 tags:
 	pushd  $(BASE)/src ; find . -name "*.hs" | grep -v "dist-newstyle" | xargs ghc-tags --etags -f TAGS ; popd
 .PHONY:
+demo:
+	pushd  $(BASE) ; cabal run exe:datastar-demo 2>&1 | tee /tmp/sse.log ; popd
 run:
 	pushd  $(BASE) ; cabal run 2>&1 | tee /tmp/sse.log ; popd
 
