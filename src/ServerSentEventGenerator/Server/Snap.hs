@@ -9,14 +9,13 @@ module ServerSentEventGenerator.Server.Snap
   ) where
 
 import Control.Concurrent
-    ( threadDelay, forkIO, killThread, myThreadId, ThreadId )
 import Control.Exception
-    ( SomeException, handle, throwIO, Exception(displayException) )
 import Control.Monad ( forever )
 import Control.Monad.IO.Class ( MonadIO(liftIO) )
 import Data.Aeson ( decode, decodeStrictText, Value )
+import Data.ByteString.Builder
 import Data.ByteString.Builder.Extra ( flush )
-import Data.Text ( Text, unpack )
+import Data.Text ( Text )
 import Data.Text.Encoding ( encodeUtf8Builder )
 import ServerSentEventGenerator
 import ServerSentEventGenerator.Constants
@@ -26,6 +25,7 @@ import Snap hiding ( headers, HttpVersion )
 import qualified System.IO.Streams as Streams ( write )
 import qualified Data.Text as T ( init, length, tail, pack )
 import qualified Data.Text.Encoding as T ( decodeUtf8 )
+import System.IO
 
 
 type Tickle = (Int -> Int) -> IO ()
@@ -34,45 +34,60 @@ type Tickle = (Int -> Int) -> IO ()
 -- VERY handy for debugging your Datastar code
 
 debug :: Bool
-debug = False
+debug = True
 
 ps :: String -> IO ()
 ps x = if debug then putStrLn x else return ()
+
+pb :: Builder -> IO ()
+pb x = if debug then hPutBuilder stdout x else return ()
+
+singleThreaded :: IO () -> IO ()
+singleThreaded action = bracket
+    (newMVar ())
+    (\mvar -> putMVar mvar ())
+    (\mvar -> takeMVar mvar >> action)
 
 runSSE :: SSEapp -> Snap ()
 runSSE (SSEapp app) = do
   request <- Snap.getRequest
   let lastId = getHeader "Last-Event-ID" request
   headers <- sseHeaders
-
   Snap.escapeHttp $ \tickle _ writeEnd -> do
-      ps ("Last-Event-ID: " <> show lastId)
+      singleThreaded $ ps ("Enter runSSE, Last-Event-ID: " <> show lastId <> "\n")
       pingThreadId <-forkIO (ping tickle writeEnd)
       handle (handleException pingThreadId "runSSE") $ do
-        Streams.write (Just headers) writeEnd
-        Streams.write (Just flush) writeEnd
-        ps "enter app"
-        app writeEnd
-        ps "exit app"
-        killThread pingThreadId
-        ps "killing ping thread"
-        Streams.write Nothing writeEnd
-        ps "runSSE done"
+        singleThreaded $ do
+          pb headers
+          Streams.write (Just headers) writeEnd
+          Streams.write (Just flush) writeEnd
+--          pb "enter app\n"
+          app writeEnd
+--          pb "exit app\n"
+          killThread pingThreadId
+--          pb "killing ping thread\n"
+          Streams.write Nothing writeEnd
+          pb "exit runSSE\n"
 
 send :: Text -> SSEstream -> IO ()
-send x writeEnd = do
-  let s =  Data.Text.unpack x
-  ps ("send: " <> s)
-  Streams.write (Just (encodeUtf8Builder x)) writeEnd
+send x writeEnd = singleThreaded $ do
+--   let s =  Data.Text.unpack x
+--   ps ("send: " <> s)
+  let bs = encodeUtf8Builder x
+  pb bs
+  Streams.write (Just bs) writeEnd
   Streams.write (Just flush) writeEnd
 
-ping :: Tickle -> SSEstream -> IO ()
-ping tickle writeEnd = forever $ do
+ping _ _ = return ()
+
+xping :: Tickle -> SSEstream -> IO ()
+xping tickle writeEnd = forever $ do
   pingThreadId <- myThreadId
-  ps ("PING: " <> show pingThreadId)
+  singleThreaded $ ps ("PING: " <> show pingThreadId)
   handle (handleException pingThreadId "ping") $ do
-    Streams.write  (Just ":\n\n") writeEnd
-    Streams.write  (Just flush) writeEnd
+    singleThreaded $ do
+      Streams.write  (Just ":\n\n") writeEnd
+      Streams.write  (Just flush) writeEnd
   tickle (max 60)
   threadDelay (11 * 1000 * 1000)
 

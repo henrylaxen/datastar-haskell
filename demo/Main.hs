@@ -6,7 +6,7 @@ import Control.Monad ( foldM_ )
 import Control.Monad.IO.Class ( MonadIO(liftIO) )
 import Data.Default ( Default(def) )
 import Data.Maybe ( fromMaybe )
-import Data.Text ( Text, lines )
+import Data.Text ( Text )
 import Data.Time ( getCurrentTime )
 import ServerSentEventGenerator
 import Snap
@@ -15,9 +15,8 @@ import ServerSentEventGenerator.Server.Snap
 import ServerSentEventGenerator.Types
 import System.IO
     ( stdout, hSetBuffering, stderr, BufferMode(NoBuffering) )
-import qualified HTMLEntities.Text ( text )
 import qualified Data.Text as T
-    ( replace, pack, singleton, unpack )
+    ( concatMap, replace, pack, singleton, unpack )
 import qualified Data.Text.IO as T ( readFile )
 
 main :: IO ()
@@ -26,15 +25,12 @@ main = do
   hSetBuffering stderr NoBuffering
   indexFile <- T.readFile "demo/www/index.html"
   let
-    indexText = T.replace "<replacedByThisPageHere>" (replacement indexFile) indexFile
+    indexText = T.replace "<replacedByThisPageHere>" (textToHtml indexFile) indexFile
     mbPort    = getPort (defaultConfig :: Config Snap a)
     newConfig = setPort (fromMaybe 8000 mbPort) (defaultConfig :: Config Snap a)
   conf <- commandLineConfig newConfig
   print conf
   simpleHttpServe conf (site indexText)
-  where
-    replacement :: Text -> Text
-    replacement x = "<pre>" <> HTMLEntities.Text.text x <> "</pre>"
 
 site :: Text -> Snap ()
 site indexText =
@@ -48,43 +44,54 @@ site indexText =
 
 handlerSignals  :: Snap ()
 handlerSignals = do
-  req    <- T.pack . show <$> getRequest
-  body   <- T.pack . show <$> readRequestBody 1024
-  params <- T.pack . show <$> getParams
+--   req    <- T.pack . show <$> getRequest
+--   body   <- T.pack . show <$> readRequestBody 1024
+--   params <- T.pack . show <$> getParams
   let
 --     jsMap = paramsAsText req
-    output = mconcat [
-        "\nRequest\n"
-      , req
-      , "\nParams\n"
-      , params
-      , "\nBody\n"
-      , body
-      , "\nEnd\n" ]
-    ds = mergeFragments output (SEL "#signals") Inner def def
-  liftIO $ putStrLn (T.unpack output)
-  runSSE (SSEapp (send ds))
+--     output = mconcat [
+--         "\nRequest\n"
+-- --      , req
+--       , "\nParams\n"
+-- --      , params
+--       , "\nBody\n"
+-- --      , body
+--       , "\nEnd\n" ]
+    f w = do
+      let
+        output = "<div id=\"signals\"> new output </div>"
+        ds = mergeFragments (output) def def def def
+      send ds w
+--       threadDelay (1 * 1000 * 1000)
+      send ds w
+  runSSE (SSEapp f)      
+--    ds = mergeFragments (textToHtml output) (SEL "#signals") Inner def def
+--  liftIO $ putStrLn (T.unpack output)
+--  liftIO $ print ds
+
+--   runSSE (SSEapp (send ds))
 
 handlerFeed :: Snap ()
 handlerFeed = do
-  liftIO $ putStrLn "feeding"
+--   liftIO $ putStrLn "feeding"
   runSSE (SSEapp f)
   where
     f :: SSEstream -> IO ()
     f w = do
-      putStrLn "Enter SSEapp"
-      let x10times = [1..10] :: [Int]
-      putStrLn "Write 10 times"
-      mapM_ (writeNow w) x10times
+--      putStrLn "Enter SSEapp"
+--      let x10times = [1..10] :: [Int]
+--      putStrLn "Write 10 times"
+      mapM_ (writeNow w) [0..1] -- x10times
 
-      writeBoth sleeping w
-      sleep 70
-      putStrLn "Wake up"
-      putStrLn "Write 10 times"
-      mapM_ (writeNow w) x10times
+--       writeBoth sleeping w
+--       sleep 70
+--       putStrLn "Wake up"
+--       putStrLn "Write 10 times"
+--       mapM_ (writeNow w) x10times
       
-      writeBoth allDone w
-      sleep 2
+--       writeBoth allDone w
+--       sleep 2
+--      writeNow w 1
       send removeDstar w
     writeNow :: SSEstream -> Int -> IO ()
     writeNow w n = do
@@ -92,13 +99,13 @@ handlerFeed = do
         return . T.pack . ((Prelude.replicate n '.') <> ) . show
       send (feedDstar now) w
       threadDelay (1 * 1000 * 1000)
-    writeBoth x w = putStrLn (T.unpack x) >> send (feedDstar x) w
-    sleeping = "Sleeping for 70 seconds, but continuing to ping"
-    allDone  = "All Done"
+--     writeBoth x w = putStrLn (T.unpack x) >> send (feedDstar x) w
+--     sleeping = "Sleeping for 70 seconds, but continuing to ping"
+--     allDone  = "All Done"
     feedDstar :: Text -> Text
     feedDstar x = mergeFragments ("<div id=\"feed\"><b>" <> x <> "</b></div>") def def def def
     removeDstar :: Text
-    removeDstar = removeFragments (SEL "#explain") (FO 5000 def) def
+    removeDstar = removeFragments (SEL "#explain") (FO 1000 def) def
 
 handlerKeats :: Snap ()
 handlerKeats = do
@@ -110,7 +117,7 @@ handlerKeats = do
     f ode w =  foldM_ (\x -> foldSlowly w x) mempty (T.unpack ode)
 --     f ode w =  singleThreaded $ foldM_ (\x -> foldSlowly w x) mempty (T.unpack ode)
     keatsDstar :: Text -> Text
-    keatsDstar x = mergeFragments (toPre x) (SEL "#keats") Inner def def
+    keatsDstar x = mergeFragments (textToHtml x) (SEL "#keats") Inner def def
     foldSlowly :: SSEstream -> Text ->  Char -> IO Text
     foldSlowly w b c = do
       pause
@@ -124,19 +131,14 @@ pause = threadDelay (10 * 100 * 100 `div` 2)
 sleep :: Int -> IO ()
 sleep n = threadDelay (n * 1000 * 1000)
 
-toPreLine :: Text -> [Text]
-toPreLine = Prelude.map oneLine . Data.Text.lines
+textToHtml :: Text -> Text 
+textToHtml = T.concatMap escape
   where
-   oneLine x = "." <> x
+    escape ' '  = T.pack "&nbsp;"
+    escape '\n' = T.pack "<br/>\n"
+    escape '<'  = T.pack "&lt;"
+    escape '>'  = T.pack "&gt;"
+    escape '&'  = T.pack "&amp;"
+    escape c    = T.singleton c
 
--- | Takes a chunk of text, breaks into a list on newlines, add a
---   period to beginning of each line, and wraps the resut in a
---   <pre> ... </pre> tag
-
-toPre :: Text -> Text
-toPre x = mconcat $
-  "<pre>" :
-  toPreLine x <>
-  ["</pre>" ]
-
-
+--    <script type="module" src="datastar.js"></script>

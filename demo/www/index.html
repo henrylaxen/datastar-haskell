@@ -2,7 +2,8 @@
 <html>
   <head>
     <title>Haskell + Datastar Example</title>
-    <script type="module" src="datastar.js"></script>
+    <script type="module"
+            src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-beta.3/bundles/datastar.js"></script>
   </head>
   <body>
     <h2>Haskell + Datastar Example</h2>
@@ -36,18 +37,16 @@
         When you click the John Keats button, his beautiful
         <i>Ode to a Nightingale</i>
         <br/>Will be slowly printed below, as if someone were typing it
-        <br/>on a keyboard.  I am using a &lt;pre&gt; tag, and because I couldn't
-        <br/>figure out how to display leading spaces, I prefixed each
-        <br/>line with a period.  An <i>engineering</i> solution, not a
-        <i>mathematical</i> one.
+        <br/>on a keyboard.
       </div>
       <button data-on-click="@get('/keats')">John Keats</button>
       <span id="keats"/>
-        <pre>
+        <div>
           <b>Ode to a Nightingale goes here</b>
-        </pre>
+        </div>
       </span>
+      <b>The actual html for this page is written below</b>
+      <div><replacedByThisPageHere></div>
     </main>
-    <b>The actual html for this page is written below</b> <replacedByThisPageHere>
   </body>
 </html>

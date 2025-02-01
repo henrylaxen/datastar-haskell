@@ -74,7 +74,7 @@ sseHeaders = do
 sendPure :: EventType -> [Text] -> Options -> Text
 sendPure eventType dataLines options = mconcat (buildLines (a:b:dataLines)) <> "\n\n"
   where
-    a = "event: " <> prompt eventType
+    a = cEvent <> cSColon <> prompt eventType
     b = prompt options
 {- | >>> :{
 do
