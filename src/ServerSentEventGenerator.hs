@@ -69,8 +69,8 @@ sendPure eventType dataLines options = mconcat (buildLines (a:b:dataLines)) <> "
 {- | >>> :{
 do
   let
-    sampleDataLines :: [Text]
-    sampleDataLines = ["line 1", "line 2"]
+    sampleDataLines :: Text
+    sampleDataLines = "line 1\nline 2"
     them = [
         mergeFragments sampleDataLines def def def def
       , mergeFragments sampleDataLines (SEL "#id") def def def
@@ -199,9 +199,9 @@ mergeSignals signals onlyIfMissing = sendPure MergeSignals (buildLines [a,b])
 {- | >>> :{
 do
   let
-    testRemoveSignal = ["velocity.x", "velocity.y", "position"] :: [Text]
+    testRemoveSignal = "velocity.x\nvelocity.y\nposition" :: Text
     them = [
-        removeSignals [] def
+        removeSignals "" def
       , removeSignals  testRemoveSignal def
       , removeSignals  testRemoveSignal (O "abc123" 10) ]
   test them
@@ -230,11 +230,11 @@ removeSignals paths = sendPure RemoveSignals (buildLines c)
 {- | >>> :{
 do
   let
-    testScript     = ["window.location = \"https://data-star.dev\""] :: [Text]
-    testAttributes = ["type text/javascript"] :: [Text]
+    testScript     = "window.location = \"https://data-star.dev\"" :: Text
+    testAttributes = "type text/javascript" :: Text
     them = [
-        executeScript [] [] True def
-      , executeScript  testScript [] False def
+        executeScript "" "" True def
+      , executeScript  testScript "" False def
       , executeScript  testScript testAttributes False def
       , executeScript  testScript testAttributes True (O "abc123" 10)  ]
   test them
@@ -243,31 +243,28 @@ event: datastar-execute-script
 data: attributes type module
 <BLANKLINE>
 event: datastar-execute-script
-data: datastar-execute-script window.location = "https://data-star.dev"
-data: attributes type module
 data: autoRemove false
+data: attributes type module
+data: script window.location = "https://data-star.dev"
 <BLANKLINE>
 event: datastar-execute-script
-data: datastar-execute-script window.location = "https://data-star.dev"
-data: attributes type text/javascript
 data: autoRemove false
+data: attributes type text/javascript
+data: script window.location = "https://data-star.dev"
 <BLANKLINE>
 event: datastar-execute-script
 id: abc123
 retry: 10
-data: datastar-execute-script window.location = "https://data-star.dev"
 data: attributes type text/javascript
+data: script window.location = "https://data-star.dev"
 <BLANKLINE>
 -}
 
 executeScript :: Text -> Text -> Bool -> Options -> Text
-executeScript script attributes autoRemove = sendPure ExecuteScript (buildLines (a : b <> [c]))
+executeScript script attributes autoRemove = sendPure ExecuteScript (buildLines (a : b <> c))
   where
-    a = prefixed cExecuteScript script 
+    a = withDefault cAutoRemove (prompt cDefaultAutoRemove) (prompt autoRemove)
     b = if attributes == ""
           then [cData <> ": " <> cAttributes <> " " <> cDefaultAttributes]
           else withList cAttributes attributes
-    c = withDefault cAutoRemove (prompt cDefaultAutoRemove) (prompt autoRemove)
-
-
-
+    c = withList cScript script 

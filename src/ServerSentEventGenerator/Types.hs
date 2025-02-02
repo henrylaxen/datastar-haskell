@@ -4,7 +4,7 @@ module ServerSentEventGenerator.Types where
 import Control.Exception ( throw, Exception )
 import Data.ByteString.Builder ( Builder )
 import Data.Default ( Default(..) )
-import Data.Text ( Text, pack )
+import Data.Text ( Text )
 import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Constants
 import ServerSentEventGenerator.Internal
@@ -29,9 +29,10 @@ instance Default Options where
 instance Prompt Options where
   prompt options =
     let
-      a = eventId options
-      b = if retryDuration options == cDefaultSseRetryDurationMs
-        then "" else pack . show $ retryDuration options
+      eI = eventId options
+      eR = retryDuration options
+      a = if eI == cDefaultEventId then mempty else cEventId <> cSColon <> eI
+      b = if eR == cDefaultSseRetryDurationMs then mempty else cRetryDuration  <> cSColon <> (prompt eR)
     in mconcat . buildLines $ [a,b]
 
 newtype Selector = SEL {unSelector :: Text}
