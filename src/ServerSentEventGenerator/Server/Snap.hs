@@ -18,7 +18,6 @@ import Data.ByteString.Builder.Extra ( flush )
 import Data.Text ( Text )
 import Data.Text.Encoding ( encodeUtf8Builder )
 import ServerSentEventGenerator
-import ServerSentEventGenerator.Constants
 import ServerSentEventGenerator.Class (HttpVersion(..))
 import ServerSentEventGenerator.Types
 import Snap hiding ( headers, HttpVersion )
@@ -27,20 +26,16 @@ import qualified Data.Text as T ( init, length, tail, pack )
 import qualified Data.Text.Encoding as T ( decodeUtf8 )
 import System.IO
 
-
 type Tickle = (Int -> Int) -> IO ()
 
 -- set to True to see the text sent to the client on stdout as well,
 -- VERY handy for debugging your Datastar code
 
 debug :: Bool
-debug = True
-
-ps :: String -> IO ()
-ps x = if debug then putStrLn x else return ()
+debug = False
 
 pb :: Builder -> IO ()
-pb x = if debug then hPutBuilder stdout x else return ()
+pb x = if debug then singleThreaded (hPutBuilder stdout x) else return ()
 
 singleThreaded :: IO () -> IO ()
 singleThreaded action = bracket
@@ -54,36 +49,28 @@ runSSE (SSEapp app) = do
   let lastId = getHeader "Last-Event-ID" request
   headers <- sseHeaders
   Snap.escapeHttp $ \tickle _ writeEnd -> do
-      singleThreaded $ ps ("Enter runSSE, Last-Event-ID: " <> show lastId <> "\n")
+      singleThreaded $ pb ("Enter runSSE, Last-Event-ID: " <> (stringUtf8 . show) lastId <> "\n")
       pingThreadId <-forkIO (ping tickle writeEnd)
       handle (handleException pingThreadId "runSSE") $ do
         singleThreaded $ do
           pb headers
           Streams.write (Just headers) writeEnd
           Streams.write (Just flush) writeEnd
---          pb "enter app\n"
           app writeEnd
---          pb "exit app\n"
           killThread pingThreadId
---          pb "killing ping thread\n"
           Streams.write Nothing writeEnd
-          pb "exit runSSE\n"
 
 send :: Text -> SSEstream -> IO ()
 send x writeEnd = singleThreaded $ do
---   let s =  Data.Text.unpack x
---   ps ("send: " <> s)
   let bs = encodeUtf8Builder x
   pb bs
   Streams.write (Just bs) writeEnd
   Streams.write (Just flush) writeEnd
 
-ping _ _ = return ()
-
-xping :: Tickle -> SSEstream -> IO ()
-xping tickle writeEnd = forever $ do
+ping :: Tickle -> SSEstream -> IO ()
+ping tickle writeEnd = forever $ do
   pingThreadId <- myThreadId
-  singleThreaded $ ps ("PING: " <> show pingThreadId)
+  singleThreaded $ pb ("PING: " <> (stringUtf8 . show) pingThreadId)
   handle (handleException pingThreadId "ping") $ do
     singleThreaded $ do
       Streams.write  (Just ":\n\n") writeEnd
@@ -99,7 +86,7 @@ instance HttpVersion Snap  where
 handleException :: ThreadId -> String -> SomeException -> IO ()
 handleException t s e = do
   killThread t
-  ps (s <> cSColon <> displayException e)
+  putStrLn (s <> ": " <> displayException e)
   throwIO e
 
 {- | >>> :{
@@ -111,6 +98,8 @@ Object (fromList [("key1",Object (fromList [("one",Number 1.0),("two",Number 2.0
 Object (fromList [("key1",Object (fromList [("one",Number 1.0),("two",Number 2.0)])),("key2",String "string")])
 -}
 
+
+-- the OPTIONS_GHC -Wno-missing-signatures is above for this function
 -- signalsAsJsonIO :: (Maybe (Map ByteString [ByteString]), ByteString) -> IO Value
 signalsAsJsonIO (mbDS,body) = do
   -- if its url encoded, then we only care about one key, named "datastar", 
@@ -120,7 +109,7 @@ signalsAsJsonIO (mbDS,body) = do
         let result = decode body  :: Maybe Value
         maybe (throwIO (JsonBodyException (T.pack . show $ body) )) return result
       Just ds -> do -- we expect a bytestring of the form "[bytetring]"
-        let         -- so throw away the first and last characters01234567891011
+        let         -- so throw away the first and last characters
           txt :: Text
           txt = T.decodeUtf8 ds
         if T.length txt <= 2

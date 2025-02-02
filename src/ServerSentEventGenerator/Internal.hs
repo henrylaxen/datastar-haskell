@@ -3,7 +3,7 @@ module ServerSentEventGenerator.Internal where
 import Control.Concurrent ( newMVar, putMVar, takeMVar )
 import Control.Exception ( bracket )
 -- import Data.Functor.Identity ( Identity(..) )
-import Data.Text ( Text, pack, lines )
+import Data.Text ( Text, lines )
 import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Constants
 import Data.String
@@ -60,7 +60,6 @@ withDefault dStarEvent defaultValue value =
   if value == defaultValue || value == mempty
   then mempty
   else prefixed dStarEvent value
---  else cData <> cSColon <> dStarEvent <> cSpace <>  value
 
 -- | Insert "data: " and the given text in front of each element of the list
 -- | >>> withList "fragments" ["l1","l2"]
@@ -88,4 +87,4 @@ test = mapM_ ps
 -- sendM ts =  singleThreaded (mapM_ sse ts)
 
 ps :: Text ->  IO ()
-ps =  Data.Text.IO.putStr . pack . show
+ps =  Data.Text.IO.putStr

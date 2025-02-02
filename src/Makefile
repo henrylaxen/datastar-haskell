@@ -1,4 +1,4 @@
-BASE=~/haskell/datastar-haskell
+BASE=~/datastar-haskell
 
 .PHONY:	
 test:

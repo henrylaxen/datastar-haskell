@@ -4,12 +4,13 @@ After familiarizing yourself with the functionality of Datastar, this
 haskell interface basically comes down to a few main functions
 specified in the Datastar sdK
 
-    mergeFragments  :: [Text] -> Selector -> MergeMode -> FragmentOptions -> Options -> Text
+    mergeFragments  :: Text -> Selector -> MergeMode -> FragmentOptions -> Options -> Text
     removeFragments :: Selector  -> FragmentOptions -> Options -> Text
-    mergeSignals    :: Text -> Bool -> Options -> Text
-    removeSignals   :: [Text] -> Options -> Text
-    executeScript   ::  [Text] -> [Text] -> Bool -> Options -> Text
-    send :: Text -> SSEstream -> IO () -- !!Only for Snap web server!!
+    mergeSignals    ::  Text -> Bool -> Options -> Text
+    removeSignals   :: Text -> Options -> Text
+    executeScript   :: Text -> Text -> Bool -> Options -> Text
+    send :: Text -> SSEstream -> IO ()   -- !!Only for Snap web server!!
+    readSignals :: Snap (Request, Value) -- !!Only for Snap web server!!
 
 Additionally you, dear user, will need to implement a web server
 dependent function named **send** that sends the text you created to
@@ -18,12 +19,18 @@ server, in the ServerSentEventGenerator.Server.Snap module, please
 have a look at it.  If you implement a similar module for you server
 of choice, please create a pull request so I can include it.
 
-You will notice a Bool named debug, which is currently set to False.
-Setting it to True will enable debug messages printed to stdout so
-you can see what is being sent to the client (web browser)
+You will also need a small function called isHttpVersion1_1 which
+returns True if you server speaks Http Version 1.1, and False
+otherwise.  This is needed to produce the correct headers for sse
+events.
 
-Finally, the executable, which you can try out by typing "cabal run"
-and pointing your browser at:
+You will notice a Bool named debug, in the
+ServerSentEventGenerator.Server.Snap module which is currently set to
+False.  Setting it to True will enable debug messages printed to
+stdout so you can see what is being sent to the client (web browser)
+
+Finally, the demo, which you can try out by typing "./demo" in the 
+top level directory and pointing your browser to:
   http://localhost:8000/
 will give you a simple demo of some Datastar features and show that
 streaming SSE events to the browser work. 

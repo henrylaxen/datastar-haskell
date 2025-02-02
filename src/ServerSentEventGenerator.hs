@@ -42,21 +42,11 @@ import ServerSentEventGenerator.Types
 -- >>> import Control.Exception
 
 
--- | returns the Http header for an SSE depending
---   on the Http version you are using. Note: you will
---   have to implement an instance of the HttpVersion class
---   for whichever web server you are using
---
--- Example:
---
--- >>> import           Data.Functor.Identity
--- >>> runIdentity $ sseHeaders
--- "Cache-control: no-cache\nContent-type: text/event-stream\nConnection: keep-alive\n"
-
 sseHeaders :: HttpVersion m => m Builder
 sseHeaders = do
   b <- isHttpVersion1_1
-  return $ if b then sseHeaders1_1 else sseHeaders2
+  let headers = if b then sseHeaders1_1 else sseHeaders2
+  return (headers <> "\n")
   where
     sseHeaders2 = "HTTP/1.1 200 OK\nCache-control: no-cache\nContent-type: text/event-stream\n"
     sseHeaders1_1 = sseHeaders2 <> "Connection: keep-alive\n"
@@ -123,13 +113,8 @@ data: fragments line 2
 <BLANKLINE>
 -}
 
--- | Insert "data: " and the given text in front of each element of the list
--- | >>> withList "fragments" ["l1","l2"]
---   ["data: fragments l1","data: fragments l2"]
--- mergeFragments
---   :: (ToText p1, ToText p2, ToText p3, IsString a) =>
---      [a] -> p3 -> p2 -> p1 -> Options -> Text
--- mergeFragments :: StringLike a => [Text] -> Selector -> MergeMode -> FragmentOptions -> Options a -> Text
+
+
 mergeFragments  :: Text -> Selector -> MergeMode -> FragmentOptions -> Options -> Text
 mergeFragments fragments selector mode fragOptions =  sendPure MergeFragments (buildLines (a:b:c:d))
   where
