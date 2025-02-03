@@ -18,9 +18,9 @@ import Data.ByteString.Builder.Extra ( flush )
 import Data.Text ( Text )
 import Data.Text.Encoding ( encodeUtf8Builder )
 import ServerSentEventGenerator
-import ServerSentEventGenerator.Class (HttpVersion(..))
-import ServerSentEventGenerator.Internal
-import ServerSentEventGenerator.Types
+import ServerSentEventGenerator.Class ()
+-- import ServerSentEventGenerator.Internal
+-- import ServerSentEventGenerator.Types
 import Snap hiding ( headers, HttpVersion )
 import qualified System.IO.Streams as Streams ( write )
 import qualified Data.Text as T ( init, length, tail, pack )

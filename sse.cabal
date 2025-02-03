@@ -11,7 +11,6 @@ maintainer:         nadine.and.henry@pobox.com
 category:           Language
 build-type:         Simple
 extra-doc-files:    CHANGELOG.md
-documentation:      True
 
 common warnings
   ghc-options:
@@ -94,6 +93,10 @@ Executable datastar-test
   other-modules:
         ServerSentEventGenerator
       , ServerSentEventGenerator.Server.Snap
+      , ServerSentEventGenerator.Class
+      , ServerSentEventGenerator.Constants
+      , ServerSentEventGenerator.Types
+      , ServerSentEventGenerator.Internal
   hs-source-dirs: src,test
   main-is: Main.hs
     

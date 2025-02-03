@@ -69,15 +69,16 @@ withList :: Text -> Text -> [Text]
 withList name =  Prelude.map (prefixed name) . Data.Text.lines
 
 -- | Handy little helpers to watch the result of sending stuff through sse
--- watch ::  Text -> ()
--- watch ::  IsString a => a -> ()
--- watch x = runIdentity (sse x)
 
+-- | send a list of text to stdout
 test :: [Text] -> IO ()
 test = mapM_ ps
 
+-- send a line of text to stdout
 ps :: Text ->  IO ()
 ps =  Data.Text.IO.putStr
+
+-- | Make sure the IO action runs without interference from other threads
 
 singleThreaded :: IO () -> IO ()
 singleThreaded action = bracket

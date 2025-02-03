@@ -48,71 +48,41 @@ js1 = [untrimming|{"events":
 }
 |]
 
+js2 :: Text
+js2 = [untrimming|
+{
+  "events": [
+    {
+      "type": "mergeFragments",
+      "fragments": "<div>Merge</div>",
+      "eventId": "event1",
+      "retryDuration": 2000,
+      "selector": "div",
+      "mergeMode": "append",
+      "settleDuration": 1000,
+      "useViewTransition": true
+    }
+  ]
+}
+|]
+
+js3 :: Text
+js3 = [untrimming|
+{
+  "events": [
+    {
+      "type": "mergeFragments",
+      "fragments": "<div>Merge</div>"
+    }
+  ]
+}
+|]
+
+  
+  
 -- Just t1 = decodeStrictText js1 :: Maybe Value
-
--- data DSEvent = DSEvent {
---   eType :: EventType
---   eScript :: Text
---   eEventId :: Int
---   eRetryDuration :: Int
---   eAutoRemove :: Bool
---   eAttributes :: [Text] }
-
--- prependFailure :: String -> Parser a -> Parser a
--- data Coord = Coord { x :: Double, y :: Double }
-
--- instance FromJSON Coord where
---     parseJSON (Object v) = Coord
---         <$> v .: "x"
---         <*> v .: "y"
-
---     -- We do not expect a non-Object value here.
---     -- We could use empty to fail, but typeMismatch
---     -- gives a much more informative error message.
---     parseJSON invalid    =
---         prependFailure "parsing Coord failed, "
---             (typeMismatch "Object" invalid)
--- typeMismatch :: String -> Value -> Parser a
--- The name of the JSON type being parsed ("Object", "Array", "String", "Number", "Boolean", or "Null").
--- The actual value encountered.
--- unexpected :: Value -> Parser a
-
--- (Object (fromList [("events",Array
---   [Object (fromList [("attributes",Object (fromList [("blocking",Bool False),("type",String "text/javascript")])),("autoRemove",Bool False),("eventId",Number 1.0),("retryDuration",Number 2000.0),("script",String "console.log('hello');"),("type",String "executeScript")])])]))  
-
--- instance ToJSON Person where
---     -- this generates a Value
---     toJSON (Person name age) =
---         object ["name" .= name, "age" .= age]
-
---     -- this encodes directly to a bytestring Builder
---     toEncoding (Person name age) =
---         pairs ("name" .= name <> "age" .= age)
-
--- instance FromJSON ServerSentEventGenerator.Types.Options where
---   parseJSON (Object o) = O
---     <$> o .: "eventId"
---     <*> o .: "retryDuration"
---   parseJSON invalid = 
---     prependFailure "parsing Options failed, "
---       (typeMismatch "Object" invalid)
-
-
--- instance ToJSON ServerSentEventGenerator.Types.Options where
---   toJSON ( ServerSentEventGenerator.Types.O eventId retryDuration) =
---     object [Key.fromText cEventId .?= eventId, Key.fromText cRetryDuration .?= retryDuration]
-
--- t2a =  toJSON $ (O "ab123" 1001)
--- t2b =  toJSON $ (O "" 1001)
--- t2c =  toJSON $ (O "" 1000)
--- t2 = (t2a,t2b,t2c)       
-       
-
--- instance ToJSON ServerSentEventGenerator.Types.Options where
---   toJSON ( ServerSentEventGenerator.Types.O eventId retryDuration) = object
---     [Key.fromText cEventId .= fromMaybe "" eventId]
-    
---     object [Key.fromText cEventId .?= eventId, Key.fromText cRetryDuration .?= retryDuration]
+-- Just t2 = decodeStrictText js2 :: Maybe Value
+-- Just t3 = decodeStrictText js3 :: Maybe Value
 
 instance ToJSON Options where
   toJSON O{..} = object [
@@ -188,4 +158,52 @@ instance FromJSON FragmentOptions where
     parseJSON = withObject "FragmentOptions" $ \v -> FO
         <$> v .:? cSettleDuration    .!= settleDuration    def
         <*> v .:? cUseViewTransition .!= useViewTransition def
- 
+
+data JMergeFragments = JMergeFragments {
+    jtype              :: Text
+  , jfragments         :: Text
+  , jeventId           :: Text
+  , jretryDuration     :: Int
+  , jselector          :: Text
+  , jmergeMode         :: Text
+  , jsettleDuration    :: Int
+  , juseViewTransition :: Bool }
+  deriving Show
+
+instance ToJSON JMergeFragments where
+    toJSON JMergeFragments{..} = object
+        [ "type" .= jtype
+        , "fragments" .= jfragments
+        , "eventId" .= jeventId
+        , "retryDuration" .= jretryDuration
+        , "selector" .= jselector
+        , "mergeMode" .= jmergeMode
+        , "settleDuration" .= jsettleDuration
+        , "useViewTransition" .= juseViewTransition
+        ]
+
+instance FromJSON JMergeFragments where
+    parseJSON = withObject "JMergeFragments" $ \v -> JMergeFragments
+        <$> v .: "type"
+        <*> v .: "fragments"
+        <*> v .:? "eventId" .!= ""
+        <*> v .:? "retryDuration" .!= cDefaultSseRetryDurationMs
+        <*> v .:? "selector" .!= ""
+        <*> v .:? "mergeMode" .!= ""
+        <*> v .:? "settleDuration" .!= cDefaultSettleDurationMs
+        <*> v .:? "useViewTransition" .!= cDefaultUseViewTransition
+
+data Events = Events {
+  jevents :: [JMergeFragments ]
+                     }
+  deriving Show
+
+instance ToJSON Events where
+    toJSON Events{..} = object
+        [ "events" .= jevents
+        ]
+
+instance FromJSON Events where
+    parseJSON = withObject "Events" $ \v -> Events
+        <$> v .: "events"
+

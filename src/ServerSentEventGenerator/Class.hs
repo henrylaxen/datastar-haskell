@@ -25,7 +25,8 @@ class Prompt a where
 -- | I need a way to go from a Datastar type to a StringLike thing that can be
 --   sent to the browser.  The Prompt class lets me do things like
 --   prompt MergeFragments = "datastar-merge-fragments" without specifying
---   the exact type of the StringLike "datastar-merge-fragments"
+--   the exact type of the StringLike "datastar-merge-fragments" I also use it
+--   to special case the output for Options
 
 instance Prompt Bool where
   prompt True  = "true"

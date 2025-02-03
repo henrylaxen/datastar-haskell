@@ -12,7 +12,7 @@ import ServerSentEventGenerator
 import Snap
 import Snap.Util.FileServe ( serveDirectory )
 import ServerSentEventGenerator.Server.Snap
-import ServerSentEventGenerator.Types
+-- import ServerSentEventGenerator.Types
 import System.IO
     ( stdout, hSetBuffering, stderr, BufferMode(NoBuffering) )
 import qualified Data.Text as T

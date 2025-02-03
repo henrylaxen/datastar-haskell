@@ -44,7 +44,6 @@ removeSignals   :: Text -> Options -> Text
 executeScript   :: Text -> Text -> Bool -> Options -> Text
 
 -- | The sseHeaders output if the server uses Http Version 1.1
-
 -- >>> sseHeaders
 -- "HTTP/1.1 200 OK\nCache-control: no-cache\nContent-type: text/event-stream\nConnection: keep-alive\n\n"
 
