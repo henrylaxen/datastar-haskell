@@ -123,6 +123,15 @@ data Attributes = ATR {
   , aBlocking :: Bool
   } deriving (Show)
 
+newtype AutoRemove = Auto Bool
+  deriving (Eq, Show)
+
+instance Default AutoRemove where
+  def = Auto True
+
+instance Prompt AutoRemove where
+  prompt (Auto True)  = "true"
+  prompt (Auto False) = "false"
 
 instance Show ServerSentEventGeneratorExceptions where
  show BuildLineDataIMissing           = "buildLine was call with nothing to build"

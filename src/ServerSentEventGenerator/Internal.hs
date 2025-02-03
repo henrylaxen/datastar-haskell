@@ -10,7 +10,7 @@ import Data.String
 import qualified Data.Text.IO
 
 -- | Combines a list of Texts into a single Text, using the same mechanism
---   as the more commonly known functions wunWrds or unLines.  A line feed is
+--   as the more commonly known functions unWords or unLines.  A line feed is
 --   inserted between each builder in the list.  Empty builders are removed, so
 --   there are no blank lines.
 

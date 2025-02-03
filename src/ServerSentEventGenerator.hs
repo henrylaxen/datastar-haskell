@@ -24,7 +24,7 @@ where
 
 import Data.ByteString.Builder ( Builder )
 import Data.Default ( Default(..) )
-import Data.Text ( Text )
+import Data.Text ( Text, lines, unlines )
 import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Constants
 import ServerSentEventGenerator.Internal
@@ -40,8 +40,8 @@ sendPure        :: EventType -> [Text] -> Options -> Text
 mergeFragments  :: Text -> Selector -> MergeMode -> FragmentOptions -> Options -> Text
 removeFragments :: Selector -> FragmentOptions -> Options -> Text
 mergeSignals    :: Text -> Bool -> Options -> Text
-removeSignals   :: Text -> Options -> Text
-executeScript   :: Text -> Text -> Bool -> Options -> Text
+removeSignals   :: [Text] -> Options -> Text
+executeScript   :: Text -> Text -> AutoRemove -> Options -> Text
 
 -- | The sseHeaders output if the server uses Http Version 1.1
 -- >>> sseHeaders
@@ -214,9 +214,9 @@ mergeSignals signals onlyIfMissing = sendPure MergeSignals (buildLines [a,b])
 {- | >>> :{
 do
   let
-    testRemoveSignal = "velocity.x\nvelocity.y\nposition" :: Text
+    testRemoveSignal = ["velocity.x", "velocity.y", "position"] :: [Text]
     them = [
-        removeSignals "" def
+        removeSignals [] def
       , removeSignals  testRemoveSignal def
       , removeSignals  testRemoveSignal (O "abc123" 10) ]
   test them
@@ -224,22 +224,22 @@ do
 event: datastar-remove-signals
 <BLANKLINE>
 event: datastar-remove-signals
-data: datastar-remove-signals velocity.x
-data: datastar-remove-signals velocity.y
-data: datastar-remove-signals position
+data: paths velocity.x
+data: paths velocity.y
+data: paths position
 <BLANKLINE>
 event: datastar-remove-signals
 id: abc123
 retry: 10
-data: datastar-remove-signals velocity.x
-data: datastar-remove-signals velocity.y
-data: datastar-remove-signals position
+data: paths velocity.x
+data: paths velocity.y
+data: paths position
 <BLANKLINE>
 -}
 
 removeSignals paths = sendPure RemoveSignals (buildLines c)
   where
-    c = withList cRemoveSignals paths
+    c = Prelude.map (prefixed cPaths) paths
 
 {- | >>> :{
 do
@@ -274,10 +274,10 @@ data: script window.location = "https://data-star.dev"
 <BLANKLINE>
 -}
 
-executeScript script attributes autoRemove = sendPure ExecuteScript (buildLines (a : b <> c))
+executeScript script attributes autoRemove = sendPure ExecuteScript (buildLines (a <> (b:c)))
   where
-    a = withDefault cAutoRemove (prompt cDefaultAutoRemove) (prompt autoRemove)
-    b = if attributes == ""
-          then [cData <> ": " <> cAttributes <> " " <> cDefaultAttributes]
-          else withList cAttributes attributes
+    filtered = filter (/= cDefaultAttributes) (Data.Text.lines attributes)
+    a = withList cAttributes (Data.Text.unlines filtered)        
+    b = withDefault cAutoRemove (prompt (def :: AutoRemove)) (prompt autoRemove)
     c = withList cScript script 
+-- executeScript = undefined
