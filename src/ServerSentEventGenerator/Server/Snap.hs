@@ -19,6 +19,7 @@ import Data.Text ( Text )
 import Data.Text.Encoding ( encodeUtf8Builder )
 import ServerSentEventGenerator
 import ServerSentEventGenerator.Class (HttpVersion(..))
+import ServerSentEventGenerator.Internal
 import ServerSentEventGenerator.Types
 import Snap hiding ( headers, HttpVersion )
 import qualified System.IO.Streams as Streams ( write )
@@ -36,12 +37,6 @@ debug = False
 
 pb :: Builder -> IO ()
 pb x = if debug then singleThreaded (hPutBuilder stdout x) else return ()
-
-singleThreaded :: IO () -> IO ()
-singleThreaded action = bracket
-    (newMVar ())
-    (\mvar -> putMVar mvar ())
-    (\mvar -> takeMVar mvar >> action)
 
 runSSE :: SSEapp -> Snap ()
 runSSE (SSEapp app) = do

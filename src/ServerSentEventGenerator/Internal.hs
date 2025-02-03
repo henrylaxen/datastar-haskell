@@ -68,12 +68,6 @@ withDefault dStarEvent defaultValue value =
 withList :: Text -> Text -> [Text]
 withList name =  Prelude.map (prefixed name) . Data.Text.lines
 
-singleThreaded :: IO () -> IO ()
-singleThreaded action = bracket
-    (newMVar ())
-    (\mvar -> putMVar mvar ())
-    (\mvar -> takeMVar mvar >> action)
-
 -- | Handy little helpers to watch the result of sending stuff through sse
 -- watch ::  Text -> ()
 -- watch ::  IsString a => a -> ()
@@ -82,9 +76,12 @@ singleThreaded action = bracket
 test :: [Text] -> IO ()
 test = mapM_ ps
 
--- sendM :: Monad m => [Text] -> m ()
--- -- sendM :: IsString a => [a] -> IO ()
--- sendM ts =  singleThreaded (mapM_ sse ts)
-
 ps :: Text ->  IO ()
 ps =  Data.Text.IO.putStr
+
+singleThreaded :: IO () -> IO ()
+singleThreaded action = bracket
+    (newMVar ())
+    (\mvar -> putMVar mvar ())
+    (\mvar -> takeMVar mvar >> action)
+

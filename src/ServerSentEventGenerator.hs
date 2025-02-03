@@ -1,12 +1,10 @@
-module ServerSentEventGenerator  
-{-
+module ServerSentEventGenerator  (
     HttpVersion(..)
-  , ToText(..)
   , Options(..)
+  , Prompt(..)
   , FragmentOptions(..)
   , EventType(..)
   , MergeMode(..)
---   , SSE
   , SSEstream
   , SSEapp(..)
   , Selector(..)
@@ -18,11 +16,9 @@ module ServerSentEventGenerator
   , singleThreaded
   , sseHeaders
   , sendPure
---   , sendM
   , test
-  , toPre
   -- $setup
-  ) -}
+  )
 
 where
 
@@ -33,16 +29,25 @@ import ServerSentEventGenerator.Class
 import ServerSentEventGenerator.Constants
 import ServerSentEventGenerator.Internal
 import ServerSentEventGenerator.Types
--- import qualified Data.Text as T ( lines )
--- import Data.String
 
 -- $setup
--- >>> import Data.Functor.Identity
+-- >>> import Data.Text
 -- >>> import Data.Maybe
 -- >>> import Control.Exception
 
+sseHeaders      :: HttpVersion m => m Builder
+sendPure        :: EventType -> [Text] -> Options -> Text
+mergeFragments  :: Text -> Selector -> MergeMode -> FragmentOptions -> Options -> Text
+removeFragments :: Selector -> FragmentOptions -> Options -> Text
+mergeSignals    :: Text -> Bool -> Options -> Text
+removeSignals   :: Text -> Options -> Text
+executeScript   :: Text -> Text -> Bool -> Options -> Text
 
-sseHeaders :: HttpVersion m => m Builder
+-- | The sseHeaders output if the server uses Http Version 1.1
+
+-- >>> sseHeaders
+-- "HTTP/1.1 200 OK\nCache-control: no-cache\nContent-type: text/event-stream\nConnection: keep-alive\n\n"
+
 sseHeaders = do
   b <- isHttpVersion1_1
   let headers = if b then sseHeaders1_1 else sseHeaders2
@@ -60,12 +65,28 @@ sseHeaders = do
 -- | All server sent events can contain and Event Id and a Retry Duration as an option
 --   This works, because if the options are equal to their defaults, they will
 --   be removed from the output
+{- | >>> :{
+do
+  let 
+    sampleDataLines :: [Text]
+    sampleDataLines = ["data: line 1","data: line 2"]
+    them = [
+      sendPure MergeFragments sampleDataLines (O "id1" 100) ]
+  test them
+:}
+event: datastar-merge-fragments
+id: id1
+retry: 100
+data: line 1
+data: line 2
+<BLANKLINE>
+-}
 
-sendPure :: EventType -> [Text] -> Options -> Text
 sendPure eventType dataLines options = mconcat (buildLines (a:b:dataLines)) <> "\n\n"
   where
     a = cEvent <> cSColon <> prompt eventType
     b = prompt options
+
 {- | >>> :{
 do
   let
@@ -113,9 +134,6 @@ data: fragments line 2
 <BLANKLINE>
 -}
 
-
-
-mergeFragments  :: Text -> Selector -> MergeMode -> FragmentOptions -> Options -> Text
 mergeFragments fragments selector mode fragOptions =  sendPure MergeFragments (buildLines (a:b:c:d))
   where
     a = prompt selector
@@ -157,7 +175,6 @@ data: settleDuration 1
 <BLANKLINE>
 -}
 
-removeFragments :: Selector  -> FragmentOptions -> Options -> Text
 removeFragments selector fragOptions = sendPure RemoveFragments (buildLines [a,b])
   where
     s = prompt selector
@@ -188,7 +205,6 @@ data: onlyIfMissing true
 <BLANKLINE>
 -}
 
-mergeSignals ::  Text -> Bool -> Options -> Text
 mergeSignals signals onlyIfMissing = sendPure MergeSignals (buildLines [a,b])
   where
     a = if signals == mempty
@@ -222,7 +238,6 @@ data: datastar-remove-signals position
 <BLANKLINE>
 -}
 
-removeSignals :: Text -> Options -> Text
 removeSignals paths = sendPure RemoveSignals (buildLines c)
   where
     c = withList cRemoveSignals paths
@@ -260,7 +275,6 @@ data: script window.location = "https://data-star.dev"
 <BLANKLINE>
 -}
 
-executeScript :: Text -> Text -> Bool -> Options -> Text
 executeScript script attributes autoRemove = sendPure ExecuteScript (buildLines (a : b <> c))
   where
     a = withDefault cAutoRemove (prompt cDefaultAutoRemove) (prompt autoRemove)

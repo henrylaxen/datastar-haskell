@@ -14,6 +14,8 @@ class Monad m => HttpVersion m where
   isHttpVersion1_1 :: m Bool
   isHttpVersion1_1 = return True
 
+instance HttpVersion IO 
+
 instance Default Text where
   def = ""
 

@@ -16,16 +16,15 @@ import ServerSentEventGenerator.Types
 import System.IO
     ( stdout, hSetBuffering, stderr, BufferMode(NoBuffering) )
 import qualified Data.Text as T
-    ( concatMap, replace, pack, singleton, unpack )
-import qualified Data.Text.IO as T ( readFile )
+    ( concatMap, pack, singleton, unpack )
+import qualified Data.Text.IO as T
 
 main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
   hSetBuffering stderr NoBuffering
-  indexFile <- T.readFile "src/demo/www/index.html"
+  indexText <- T.readFile "src/demo/www/index.html"
   let
-    indexText = T.replace "<replacedByThisPageHere>" (textToHtml indexFile) indexFile
     mbPort    = getPort (defaultConfig :: Config Snap a)
     newConfig = setPort (fromMaybe 8000 mbPort) (defaultConfig :: Config Snap a)
   conf <- commandLineConfig newConfig
@@ -41,10 +40,12 @@ site indexText =
       , ("keats"       , handlerKeats)
       , ("signals"     , handlerSignals)
       , ("clear"       , handlerClear)
+      , ("test"       , handlerSignals)
       ] <|> serveDirectory "demo/www"
 
 handlerSignals  :: Snap ()
 handlerSignals = do
+  ps "handlerSignals"
   req    <- T.pack . show <$> getRequest
   body   <- T.pack . show <$> readRequestBody 1024
   params <- T.pack . show <$> getParams
@@ -64,7 +65,8 @@ handlerSignals = do
     f w = do
       let ds = mergeFragments (output) (SEL "#signals") Inner def def
       send ds w
-  runSSE (SSEapp f)      
+  ps output
+--  runSSE (SSEapp f)      
 --    ds = mergeFragments (textToHtml output) (SEL "#signals") Inner def def
 --  liftIO $ putStrLn (T.unpack output)
 --  liftIO $ print ds
@@ -138,3 +140,6 @@ textToHtml = T.concatMap escape
     escape c    = T.singleton c
 
 --    <script type="module" src="datastar.js"></script>
+
+ps :: Text ->  Snap ()
+ps =  liftIO . T.putStrLn

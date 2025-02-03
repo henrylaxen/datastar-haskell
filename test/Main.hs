@@ -25,6 +25,7 @@ import Data.Text
 import ServerSentEventGenerator
 import Data.String
 
+import Text.Show.Pretty (pPrint)
   
 main :: IO ()
 main = do
