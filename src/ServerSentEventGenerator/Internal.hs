@@ -2,12 +2,13 @@ module ServerSentEventGenerator.Internal where
 
 import Control.Concurrent ( newMVar, putMVar, takeMVar )
 import Control.Exception ( bracket )
--- import Data.Functor.Identity ( Identity(..) )
+import Data.String ( IsString )
 import Data.Text ( Text, lines )
-import ServerSentEventGenerator.Class
+import ServerSentEventGenerator.Class ( StringLike )
 import ServerSentEventGenerator.Constants
-import Data.String
-import qualified Data.Text.IO
+    ( cData, cSColon, cSpace )
+import qualified Data.Text.IO ( putStr )
+
 
 -- | Combines a list of Texts into a single Text, using the same mechanism
 --   as the more commonly known functions unWords or unLines.  A line feed is

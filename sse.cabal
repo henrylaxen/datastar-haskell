@@ -88,7 +88,6 @@ Executable datastar-test
   default-language: Haskell2010
   build-depends:
       html-entities
-    , pretty-show
     , time
   other-modules:
         ServerSentEventGenerator
@@ -97,6 +96,21 @@ Executable datastar-test
       , ServerSentEventGenerator.Constants
       , ServerSentEventGenerator.Types
       , ServerSentEventGenerator.Internal
-  hs-source-dirs: src,test
+  hs-source-dirs: src,src/test
   main-is: Main.hs
     
+Executable hello-world
+  import:  deps,warnings,default-extensions
+  default-language: Haskell2010
+  build-depends:
+      aeson
+--     , lifted-base
+  other-modules:
+        ServerSentEventGenerator
+      , ServerSentEventGenerator.Class
+      , ServerSentEventGenerator.Constants
+      , ServerSentEventGenerator.Types
+      , ServerSentEventGenerator.Internal
+      , ServerSentEventGenerator.Server.Snap
+  hs-source-dirs: src,src/examples/hello-world
+  main-is: Main.hs

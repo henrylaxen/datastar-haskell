@@ -1,35 +1,22 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Main where
 
--- import Control.Applicative ( Alternative((<|>)) )
--- import Control.Concurrent ( threadDelay )
--- import Control.Monad ( foldM_ )
--- import Control.Monad.IO.Class ( MonadIO(liftIO) )
--- import Data.ByteString.Lazy
--- import Data.Maybe ( fromMaybe )
--- import Data.Time ( getCurrentTime )
-import ServerSentEventGenerator.Types
--- import ServerSentEventGenerator.Constants
--- import Snap
--- import System.IO
---     ( stdout, hSetBuffering, stderr, BufferMode(NoBuffering) )
--- import qualified Data.Text as T
--- import Data.Aeson.Types hiding ( Options )
--- import Data.Aeson.KeyMap
--- import qualified Data.Aeson.Key as Key
--- import qualified Data.Vector as V
-import NeatInterpolation
--- import Data.Aeson hiding ( Options )
 import Data.Default ( Default(def) )
--- import Data.Text
+import NeatInterpolation ( trimming )
 import ServerSentEventGenerator
--- import Data.String
+    ( test,
+      executeScript,
+      mergeFragments,
+      mergeSignals,
+      removeFragments,
+      removeSignals )
+import ServerSentEventGenerator.Types
+    ( AutoRemove(Auto),
+      FragmentOptions(FO),
+      MergeMode(Morph, Append),
+      Options(O),
+      Selector(SEL) )
 
--- import Text.Show.Pretty (pPrint)
-
-xmain :: IO ()
-xmain = return ()
-  
 main :: IO ()
 main = do
   let

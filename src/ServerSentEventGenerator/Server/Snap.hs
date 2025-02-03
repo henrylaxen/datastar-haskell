@@ -9,23 +9,35 @@ module ServerSentEventGenerator.Server.Snap
   ) where
 
 import Control.Concurrent
+    ( threadDelay, forkIO, killThread, myThreadId, ThreadId )
 import Control.Exception
+    ( SomeException, handle, throwIO, Exception(displayException) )
 import Control.Monad ( forever )
 import Control.Monad.IO.Class ( MonadIO(liftIO) )
 import Data.Aeson ( decode, decodeStrictText, Value )
-import Data.ByteString.Builder
+import Data.ByteString.Builder ( Builder, hPutBuilder, stringUtf8 )
 import Data.ByteString.Builder.Extra ( flush )
 import Data.Text ( Text )
 import Data.Text.Encoding ( encodeUtf8Builder )
 import ServerSentEventGenerator
+    ( HttpVersion(..),
+      singleThreaded,
+      SSEapp(..),
+      SSEstream,
+      sseHeaders )
 import ServerSentEventGenerator.Class ()
--- import ServerSentEventGenerator.Internal
--- import ServerSentEventGenerator.Types
-import Snap hiding ( headers, HttpVersion )
+import Snap
+    ( Snap,
+      Request(rqVersion),
+      escapeHttp,
+      getParam,
+      getRequest,
+      readRequestBody,
+      getHeader )
+import System.IO ( stdout )
 import qualified System.IO.Streams as Streams ( write )
 import qualified Data.Text as T ( init, length, tail, pack )
 import qualified Data.Text.Encoding as T ( decodeUtf8 )
-import System.IO
 
 type Tickle = (Int -> Int) -> IO ()
 
@@ -33,7 +45,7 @@ type Tickle = (Int -> Int) -> IO ()
 -- VERY handy for debugging your Datastar code
 
 debug :: Bool
-debug = False
+debug = True
 
 pb :: Builder -> IO ()
 pb x = if debug then singleThreaded (hPutBuilder stdout x) else return ()
@@ -92,7 +104,6 @@ do
 Object (fromList [("key1",Object (fromList [("one",Number 1.0),("two",Number 2.0)])),("key2",String "string")])
 Object (fromList [("key1",Object (fromList [("one",Number 1.0),("two",Number 2.0)])),("key2",String "string")])
 -}
-
 
 -- the OPTIONS_GHC -Wno-missing-signatures is above for this function
 -- signalsAsJsonIO :: (Maybe (Map ByteString [ByteString]), ByteString) -> IO Value

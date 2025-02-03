@@ -1,21 +1,22 @@
 module ServerSentEventGenerator  (
-    HttpVersion(..)
+    AutoRemove(..)
+  , EventType(..)
+  , FragmentOptions(..)
+  , HttpVersion(..)
+  , MergeMode(..)
   , Options(..)
   , Prompt(..)
-  , FragmentOptions(..)
-  , EventType(..)
-  , MergeMode(..)
-  , SSEstream
   , SSEapp(..)
+  , SSEstream
   , Selector(..)
-  , mergeFragments
-  , removeFragments
-  , mergeSignals
-  , removeSignals
   , executeScript
+  , mergeFragments
+  , mergeSignals
+  , removeFragments
+  , removeSignals
+  , sendPure
   , singleThreaded
   , sseHeaders
-  , sendPure
   , test
   -- $setup
   )
@@ -26,6 +27,7 @@ import Data.ByteString.Builder ( Builder )
 import Data.Default ( Default(..) )
 import Data.Text ( Text, lines, unlines )
 import ServerSentEventGenerator.Class
+    ( HttpVersion(..), Prompt(..) )
 import ServerSentEventGenerator.Constants
 import ServerSentEventGenerator.Internal
 import ServerSentEventGenerator.Types
@@ -247,23 +249,21 @@ do
     testScript     = "window.location = \"https://data-star.dev\"" :: Text
     testAttributes = "type text/javascript" :: Text
     them = [
-        executeScript "" "" True def
-      , executeScript  testScript "" False def
-      , executeScript  testScript testAttributes False def
-      , executeScript  testScript testAttributes True (O "abc123" 10)  ]
+        executeScript "" "" (Auto True) def
+      , executeScript  testScript "" (Auto False) def
+      , executeScript  testScript testAttributes (Auto False) def
+      , executeScript  testScript testAttributes def (O "abc123" 10)  ]
   test them
 :}
 event: datastar-execute-script
-data: attributes type module
 <BLANKLINE>
 event: datastar-execute-script
 data: autoRemove false
-data: attributes type module
 data: script window.location = "https://data-star.dev"
 <BLANKLINE>
 event: datastar-execute-script
-data: autoRemove false
 data: attributes type text/javascript
+data: autoRemove false
 data: script window.location = "https://data-star.dev"
 <BLANKLINE>
 event: datastar-execute-script
@@ -280,4 +280,4 @@ executeScript script attributes autoRemove = sendPure ExecuteScript (buildLines 
     a = withList cAttributes (Data.Text.unlines filtered)        
     b = withDefault cAutoRemove (prompt (def :: AutoRemove)) (prompt autoRemove)
     c = withList cScript script 
--- executeScript = undefined
+

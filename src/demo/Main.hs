@@ -12,7 +12,6 @@ import ServerSentEventGenerator
 import Snap
 import Snap.Util.FileServe ( serveDirectory )
 import ServerSentEventGenerator.Server.Snap
--- import ServerSentEventGenerator.Types
 import System.IO
     ( stdout, hSetBuffering, stderr, BufferMode(NoBuffering) )
 import qualified Data.Text as T
@@ -50,7 +49,6 @@ handlerSignals = do
   body   <- T.pack . show <$> readRequestBody 1024
   params <- T.pack . show <$> getParams
   let
---     jsMap = paramsAsText req
     output = mconcat [
       "<pre>"
       , "\n<b>Request</b>\n"
@@ -65,11 +63,7 @@ handlerSignals = do
     f w = do
       let ds = mergeFragments (output) (SEL "#signals") Inner def def
       send ds w
-  ps output
---  runSSE (SSEapp f)      
---    ds = mergeFragments (textToHtml output) (SEL "#signals") Inner def def
---  liftIO $ putStrLn (T.unpack output)
---  liftIO $ print ds
+  runSSE (SSEapp f)      
 
 handlerClear :: Snap ()
 handlerClear = runSSE (SSEapp f)

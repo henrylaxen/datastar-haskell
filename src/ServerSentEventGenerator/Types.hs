@@ -5,12 +5,12 @@ import Control.Exception ( throw, Exception )
 import Data.ByteString.Builder ( Builder )
 import Data.Default ( Default(..) )
 import Data.Text ( Text )
-import ServerSentEventGenerator.Class
+import ServerSentEventGenerator.Class ( Prompt(..) )
 import ServerSentEventGenerator.Constants
 import ServerSentEventGenerator.Internal
     ( buildLines, withDefault )
 import qualified System.IO.Streams as Streams ( OutputStream )
--- import Data.String
+
 
 type SSEstream = Streams.OutputStream Builder
 newtype SSEapp = SSEapp (SSEstream -> IO ())
@@ -68,7 +68,7 @@ instance Prompt EventType where
 data FunctionExecuteScript =  FunctionExecuteScript {
     eType       :: EventType
   , eScript     :: Text
-  , eAttributes :: Attributes
+  , eAttributes :: Text
   , eAutoRemove :: Bool
   , eOptions    :: Options
   } deriving Show
@@ -118,10 +118,10 @@ instance Prompt FragmentOptions where
     , withDefault cUseViewTransition (prompt cDefaultUseViewTransition)  (prompt b)
     ]
 
-data Attributes = ATR {
-    aType     :: Text
-  , aBlocking :: Bool
-  } deriving (Show)
+-- data Attributes = ATR {
+--     aType     :: Text
+--   , aBlocking :: Bool
+--   } deriving (Show)
 
 newtype AutoRemove = Auto Bool
   deriving (Eq, Show)
