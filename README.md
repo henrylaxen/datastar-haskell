@@ -29,6 +29,11 @@ ServerSentEventGenerator.Server.Snap module which is currently set to
 False.  Setting it to True will enable debug messages printed to
 stdout so you can see what is being sent to the client (web browser)
 
+The readSignals function probably does not do what you expect.  It
+returns a Data.Aeson Object, which is generally useless for Haskell
+programmers.  You are better off reading the from your server and
+dealing with it directly.
+
 Finally, the demo, which you can try out by typing "./demo" in the 
 top level directory and pointing your browser to:
   http://localhost:8000/

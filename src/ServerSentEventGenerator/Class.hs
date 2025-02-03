@@ -2,6 +2,7 @@
 module ServerSentEventGenerator.Class where
 
 import Data.Default ( Default(..) )
+import Prelude
 import Data.Text ( Text )
 import Data.String
 

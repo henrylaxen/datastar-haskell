@@ -3,6 +3,7 @@ module ServerSentEventGenerator.Internal where
 import Control.Concurrent ( newMVar, putMVar, takeMVar )
 import Control.Exception ( bracket )
 import Data.String ( IsString )
+import Prelude
 import Data.Text ( Text, lines )
 import ServerSentEventGenerator.Class ( StringLike )
 import ServerSentEventGenerator.Constants

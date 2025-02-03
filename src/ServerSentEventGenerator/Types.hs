@@ -5,6 +5,7 @@ import Control.Exception ( throw, Exception )
 import Data.ByteString.Builder ( Builder )
 import Data.Default ( Default(..) )
 import Data.Text ( Text )
+import Prelude
 import ServerSentEventGenerator.Class ( Prompt(..) )
 import ServerSentEventGenerator.Constants
 import ServerSentEventGenerator.Internal

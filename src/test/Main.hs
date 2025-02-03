@@ -3,6 +3,7 @@ module Main where
 
 import Data.Default ( Default(def) )
 import NeatInterpolation ( trimming )
+import Prelude
 import ServerSentEventGenerator
     ( test,
       executeScript,

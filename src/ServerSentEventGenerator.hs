@@ -25,6 +25,7 @@ where
 
 import Data.ByteString.Builder ( Builder )
 import Data.Default ( Default(..) )
+import Prelude
 import Data.Text ( Text, lines, unlines )
 import ServerSentEventGenerator.Class
     ( HttpVersion(..), Prompt(..) )

@@ -1,5 +1,6 @@
 module ServerSentEventGenerator.Constants where
 
+import Prelude
 import ServerSentEventGenerator.Class (StringLike)
 
 

@@ -46,6 +46,7 @@ common default-extensions
       , FunctionalDependencies
       , GeneralizedNewtypeDeriving
       , MultiParamTypeClasses
+      , NoImplicitPrelude
       , OverloadedStrings
       , QuasiQuotes
       , RecordWildCards
@@ -71,7 +72,7 @@ Executable datastar-demo
   import:  deps,warnings,default-extensions
   default-language: Haskell2010
   build-depends:
-      html-entities
+      sse
     , time
   other-modules:
         ServerSentEventGenerator
@@ -88,6 +89,7 @@ Executable datastar-test
   default-language: Haskell2010
   build-depends:
       html-entities
+    , sse
     , time
   other-modules:
         ServerSentEventGenerator
@@ -104,13 +106,16 @@ Executable hello-world
   default-language: Haskell2010
   build-depends:
       aeson
---     , lifted-base
+    , relude
+    , scientific
+    , sse
   other-modules:
         ServerSentEventGenerator
+      , ServerSentEventGenerator.Server.Snap
       , ServerSentEventGenerator.Class
       , ServerSentEventGenerator.Constants
       , ServerSentEventGenerator.Types
       , ServerSentEventGenerator.Internal
-      , ServerSentEventGenerator.Server.Snap
   hs-source-dirs: src,src/examples/hello-world
   main-is: Main.hs
+  default-extensions:

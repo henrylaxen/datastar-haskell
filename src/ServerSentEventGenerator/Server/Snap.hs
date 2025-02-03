@@ -17,6 +17,7 @@ import Control.Monad.IO.Class ( MonadIO(liftIO) )
 import Data.Aeson ( decode, decodeStrictText, Value )
 import Data.ByteString.Builder ( Builder, hPutBuilder, stringUtf8 )
 import Data.ByteString.Builder.Extra ( flush )
+import Prelude
 import Data.Text ( Text )
 import Data.Text.Encoding ( encodeUtf8Builder )
 import ServerSentEventGenerator
@@ -36,7 +37,7 @@ import Snap
       getHeader )
 import System.IO ( stdout )
 import qualified System.IO.Streams as Streams ( write )
-import qualified Data.Text as T ( init, length, tail, pack )
+import qualified Data.Text as T ( pack )
 import qualified Data.Text.Encoding as T ( decodeUtf8 )
 
 type Tickle = (Int -> Int) -> IO ()
@@ -118,14 +119,9 @@ signalsAsJsonIO (mbDS,body) = do
         let         -- so throw away the first and last characters
           txt :: Text
           txt = T.decodeUtf8 ds
-        if T.length txt <= 2
-          then throwIO (JsonTextTooShort txt)
-          else do
-            let
-              shortened = T.tail . T.init $ txt
-            case ((decodeStrictText shortened) :: Maybe Value) of
-              Nothing -> throwIO $ JsonDecodingException txt
-              Just v -> return v
+        case ((decodeStrictText txt) :: Maybe Value) of
+          Nothing -> throwIO $ JsonDecodingException txt
+          Just v -> return v
 
 signalsAsJson :: Snap Value
 signalsAsJson = do

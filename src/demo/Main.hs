@@ -6,6 +6,7 @@ import Control.Monad ( foldM_ )
 import Control.Monad.IO.Class ( MonadIO(liftIO) )
 import Data.Default ( Default(def) )
 import Data.Maybe ( fromMaybe )
+import Prelude
 import Data.Text ( Text )
 import Data.Time ( getCurrentTime )
 import ServerSentEventGenerator
