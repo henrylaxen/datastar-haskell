@@ -1,10 +1,6 @@
-use starfederation\datastar\ServerSentEventGenerator;
+import ServerSentEventGenerator
+import ServerSentEventGenerator.Server.Snap -- or whatever is appropriate
 
-$sse = new ServerSentEventGenerator();
-$sse->mergeFragments(`
-    <div id="indicator">Redirecting in 3 seconds...</div>
-`);
-sleep(3);
-$sse->executeScript(`
-    window.location = "/guide"
-`);
+send (withDefaults mergeFragments "<div id=\"indicator\">Redirecting in 3 seconds...</div>")
+threadDelay (3 * 1000 * 1000)
+send (withDefaults executeScript "window.location = \"/guide\"")

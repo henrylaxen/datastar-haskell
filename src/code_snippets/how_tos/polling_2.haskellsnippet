@@ -1,48 +1,21 @@
-use starfederation\datastar\ServerSentEventGenerator;
-
-$currentTime = date('Y-m-d H:i:s');
-$currentSeconds = date('s');
-$duration = $currentSeconds < 50 ? 5 : 1;
-
-$sse = new ServerSentEventGenerator();
-$sse->sendHeaders();
-$sse->mergeFragments(`
-    <div id="time"
-         data-on-interval__duration.${duration}s="@get('/endpoint')"
-    >
-        $currentTime
-    </div>
-
-`);
-
-import (
-    "time"
-    datastar "github.com/starfederation/datastar/sdk/go"
-)
-
-currentTime := time.Now().Format("2006-01-02 15:04:05")
-currentSeconds := time.Now().Format("05")
-duration := 1
-if currentSeconds < "50" {
-    duration = 5
-}
-
-sse := datastar.NewSSE(w, r)
-sse.MergeFragments(fmt.Sprintf(`
-    <div id="time" data-on-interval__duration.%ds="@get('/endpoint')">
-        %s
-    </div>
-`, duration, currentTime))
-
+{-# LANGUAGE QuasiQuotes #-}
+import ServerSentEventGenerator
+import ServerSentEventGenerator.Server.Snap -- or whatever is appropriate
 import Data.Time ( getCurrentTime )
-import Data.Text ( pack )
+import Data.Time.Format
+import Data.Text ( pack, unpack )
+import NeatInterpolation
 
 now <- getCurrentTime
 let
-  txt = mconcat [
-    "<div id=\"time\" data-on-interval__duration.5s=\"@get('/endpoint')\">"
-    , (pack . show) now
-    , "</div>" ]
-mergeFragments txt def def def def
-
+  formatted = pack $ formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S" now
+  seconds   = formatTime defaultTimeLocale "%S" now
+  duration  = pack $ if seconds < "50" then "5" else "1"
+  message x y   =
+    [trimming|
+      <div id="time" data-on-interval__duration.${x}s="@get('/endpoint')">
+        ${y}
+       </div>
+    |]
+send $ mergeFragments (message duration formatted) def def def def
 

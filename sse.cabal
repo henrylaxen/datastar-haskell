@@ -1,5 +1,5 @@
 cabal-version:      3.12
-name:               sse
+name:               dstar
 version:            0.2.0.0
 synopsis:           Interface for Server Sent Events using the DataStar framework
 description:        See https://data-star.dev/ for full information
@@ -72,7 +72,7 @@ Executable datastar-demo
   import:  deps,warnings,default-extensions
   default-language: Haskell2010
   build-depends:
-      sse
+      dstar
     , time
   other-modules:
         ServerSentEventGenerator
@@ -89,7 +89,7 @@ Executable datastar-test
   default-language: Haskell2010
   build-depends:
       html-entities
-    , sse
+    , dstar
     , time
   other-modules:
         ServerSentEventGenerator
@@ -108,7 +108,7 @@ Executable hello-world
       aeson
     , relude
     , scientific
-    , sse
+    , dstar
   other-modules:
         ServerSentEventGenerator
       , ServerSentEventGenerator.Server.Snap

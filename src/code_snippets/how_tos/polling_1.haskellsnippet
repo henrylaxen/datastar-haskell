@@ -1,3 +1,5 @@
+import ServerSentEventGenerator
+import ServerSentEventGenerator.Server.Snap -- or whatever is appropriate
 import Data.Time ( getCurrentTime )
 import Data.Text ( pack )
 

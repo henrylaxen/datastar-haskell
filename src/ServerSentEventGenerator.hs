@@ -18,6 +18,7 @@ module ServerSentEventGenerator  (
   , singleThreaded
   , sseHeaders
   , test
+  , withDefaults
   -- $setup
   )
 
@@ -276,3 +277,9 @@ executeScript script attributes autoRemove = sendPure ExecuteScript (buildLines 
     b = withDefault cAutoRemove (prompt (def :: AutoRemove)) (prompt autoRemove)
     c = withList cScript script 
 
+withDefaults :: EventType -> Text -> Text
+withDefaults MergeFragments  txt = mergeFragments txt def def def def
+withDefaults RemoveFragments txt = removeFragments (SEL txt) def def
+withDefaults MergeSignals    txt = mergeSignals txt def def
+withDefaults RemoveSignals   txt = removeSignals (Data.Text.lines txt) def
+withDefaults ExecuteScript   txt = executeScript txt def def def

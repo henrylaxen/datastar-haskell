@@ -7,10 +7,20 @@ specified in the Datastar sdK
     mergeFragments  :: Text -> Selector -> MergeMode -> FragmentOptions -> Options -> Text
     removeFragments :: Selector  -> FragmentOptions -> Options -> Text
     mergeSignals    :: Text -> Bool -> Options -> Text
-    removeSignals   :: Text -> Options -> Text
+    removeSignals   :: [Text] -> Options -> Text
     executeScript   :: Text -> Text -> Bool -> Options -> Text
     send            :: Text -> Snap ()       -- !!Only for Snap web server!!
     readSignals     :: Snap (Request, Value) -- !!Only for Snap web server!!
+
+However, most likely you will usually take the defaults, which means
+you will actually type:
+
+    withDefaults :: EventType -> Text -> Text
+    withDefaults MergeFragments  txt
+    withDefaults RemoveFragments txt
+    withDefaults MergeSignals    txt
+    withDefaults RemoveSignals   txt
+    withDefaults ExecuteScript   txt
 
 Additionally you, dear user, will need to implement a web server
 dependent function named **send** that sends the text you created to

@@ -1,5 +1,8 @@
-send $ mergeFragments "<div id=\"question\">...</div>" def def def def
-send $ mergeFragments "<div id=\"instructions\">...</div>" def def def def
-send $ mergeFragments "{answer: '...'}" def def def def
-send $ mergeFragments "{prize: '...'}" def def def def
+import ServerSentEventGenerator
+import ServerSentEventGenerator.Server.Snap -- or whatever is appropriate
+
+send (withDefaults MergeFragments "<div id=\"question\">...</div>")
+send (withDefaults MergeFragments "<div id=\"instructions\">...</div>")
+send (withDefaults MergeFragments "{answer: '...'}")
+send (withDefaults MergeFragments "{prize: '...'}")
 

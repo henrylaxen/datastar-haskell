@@ -1,7 +1,8 @@
 import ServerSentEventGenerator
+import ServerSentEventGenerator.Server.Snap -- or whatever is appropriate
 
 -- Merges HTML fragments into the DOM.
-send $ mergeFragments "<div id=\"question\">What do you put in a toaster?</div>" def def def
+send (withDefaults mergeFragments "<div id=\"question\">What do you put in a toaster?</div>")
 
 -- Merges signals into the signals.
-send $ mergeSignals "{response: '', answer: 'bread'}" def def
+send (withDefaults mergeSignals "{response: '', answer: 'bread'}")

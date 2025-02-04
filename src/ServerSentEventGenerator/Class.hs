@@ -4,6 +4,7 @@ module ServerSentEventGenerator.Class where
 import Data.Default ( Default(..) )
 import Prelude
 import Data.Text ( Text )
+import Data.Text.IO ( putStr )
 import Data.String
 
 type StringLike a = (Eq a, IsString a, Monoid a)
@@ -16,6 +17,12 @@ class Monad m => HttpVersion m where
   isHttpVersion1_1 = return True
 
 instance HttpVersion IO 
+
+class Monad m => Send m where
+  send :: Text -> m ()
+
+instance Send IO where
+  send = Data.Text.IO.putStr
 
 instance Default Text where
   def = ""
