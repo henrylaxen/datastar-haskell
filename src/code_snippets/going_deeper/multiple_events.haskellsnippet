@@ -1,6 +1,6 @@
 import ServerSentEventGenerator
 
-mergeFragments "<div id=\"hello\">Hello, world!</div>" def def def def
-mergeSignals "{foo: {bar: 1}}" def def
-executeScript "console.log('Success!')" def def def
+send $ mergeFragments "<div id=\"hello\">Hello, world!</div>" def def def def
+send $ mergeSignals   "{foo: {bar: 1}}" def def
+send $ executeScript  "console.log('Success!')" def def def
 
