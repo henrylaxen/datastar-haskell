@@ -6,11 +6,11 @@ specified in the Datastar sdK
 
     mergeFragments  :: Text -> Selector -> MergeMode -> FragmentOptions -> Options -> Text
     removeFragments :: Selector  -> FragmentOptions -> Options -> Text
-    mergeSignals    ::  Text -> Bool -> Options -> Text
+    mergeSignals    :: Text -> Bool -> Options -> Text
     removeSignals   :: Text -> Options -> Text
     executeScript   :: Text -> Text -> Bool -> Options -> Text
-    send :: Text -> SSEstream -> IO ()   -- !!Only for Snap web server!!
-    readSignals :: Snap (Request, Value) -- !!Only for Snap web server!!
+    send            :: Text -> Snap ()       -- !!Only for Snap web server!!
+    readSignals     :: Snap (Request, Value) -- !!Only for Snap web server!!
 
 Additionally you, dear user, will need to implement a web server
 dependent function named **send** that sends the text you created to
@@ -34,7 +34,7 @@ returns a Data.Aeson Object, which is generally useless for Haskell
 programmers.  You are better off reading the from your server and
 dealing with it directly.
 
-Finally, the demo, which you can try out by typing "./demo" in the 
+Finally, the demo, which you can try out by typing "./run" in the 
 top level directory and pointing your browser to:
   http://localhost:8000/
 will give you a simple demo of some Datastar features and show that

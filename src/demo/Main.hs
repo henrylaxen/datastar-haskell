@@ -61,15 +61,11 @@ handlerSignals = do
       , "\n<b>End</b>\n"
       , "</pre>"
       ]
-    f w = do
-      let ds = mergeFragments (output) (SEL "#signals") Inner def def
-      send ds w
-  runSSE (SSEapp f)      
+    ds = mergeFragments (output) (SEL "#signals") Inner def def
+  send ds
 
 handlerClear :: Snap ()
-handlerClear = runSSE (SSEapp f)
-  where
-    f = send (mergeFragments "<div/>" (SEL "#signals") Inner def def)
+handlerClear = send $ (mergeFragments "<div/>" (SEL "#signals") Inner def def)
   
 handlerFeed :: Snap ()
 handlerFeed = do
@@ -86,14 +82,14 @@ handlerFeed = do
       putStrLn "Write 10 times"
       mapM_ (writeNow w) x10times
       writeBoth allDone w
-      send removeDstar w
+      sendInApp removeDstar w
     writeNow :: SSEstream -> Int -> IO ()
     writeNow w n = do
       now <- getCurrentTime >>=
         return . T.pack . ((Prelude.replicate n '.') <> ) . show
-      send (feedDstar now) w
+      sendInApp (feedDstar now) w
       threadDelay (1 * 1000 * 1000)
-    writeBoth x w = putStrLn (T.unpack x) >> send (feedDstar x) w
+    writeBoth x w = putStrLn (T.unpack x) >> sendInApp (feedDstar x) w
     sleeping = "Sleeping for 70 seconds, but continuing to ping"
     allDone  = "All Done, the settleDuration to remove the div is 5 seconds"
     feedDstar :: Text -> Text
@@ -115,7 +111,7 @@ handlerKeats = do
     foldSlowly w b c = do
       pause
       let s = b <> (T.singleton c)
-      send (keatsDstar s) w
+      sendInApp (keatsDstar s) w
       return s
 
 pause :: IO ()

@@ -9,7 +9,7 @@ import Data.Default ( Default(def) )
 import Relude
 import ServerSentEventGenerator
     ( SSEapp(SSEapp), SSEstream, mergeFragments)
-import ServerSentEventGenerator.Server.Snap ( runSSE, send, {- readSignals -} )
+import ServerSentEventGenerator.Server.Snap ( runSSE, sendInApp, {- readSignals -} )
 import Snap
     ( getParam,
       ifTop,
@@ -81,5 +81,5 @@ handlerHelloWord = do
         foldSlowly b c = do
           pause
           let s = b <> (T.singleton c)
-          send (merge s) w
+          sendInApp (merge s) w
           return s

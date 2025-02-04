@@ -1,0 +1,7 @@
+import ServerSentEventGenerator
+
+-- Merges HTML fragments into the DOM.
+mergeFragments "<div id=\"question\">What do you put in a toaster?</div>" def def def
+
+-- Merges signals into the signals.
+mergeSignals "{response: '', answer: 'bread'}" def def

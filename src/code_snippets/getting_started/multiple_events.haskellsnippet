@@ -1,0 +1,5 @@
+mergeFragments "<div id=\"question\">...</div>" def def def def
+mergeFragments "<div id=\"instructions\">...</div>" def def def def
+mergeFragments "{answer: '...'}" def def def def
+mergeFragments "{prize: '...'}" def def def def
+

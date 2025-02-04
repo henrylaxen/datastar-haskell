@@ -4,6 +4,7 @@
 module ServerSentEventGenerator.Server.Snap
   (
     runSSE
+  , sendInApp
   , send
   , readSignals
   ) where
@@ -46,7 +47,7 @@ type Tickle = (Int -> Int) -> IO ()
 -- VERY handy for debugging your Datastar code
 
 debug :: Bool
-debug = True
+debug = False
 
 pb :: Builder -> IO ()
 pb x = if debug then singleThreaded (hPutBuilder stdout x) else return ()
@@ -68,12 +69,18 @@ runSSE (SSEapp app) = do
           killThread pingThreadId
           Streams.write Nothing writeEnd
 
-send :: Text -> SSEstream -> IO ()
-send x writeEnd = singleThreaded $ do
+sendInApp :: Text -> SSEstream -> IO ()
+sendInApp x writeEnd = singleThreaded $ do
   let bs = encodeUtf8Builder x
   pb bs
   Streams.write (Just bs) writeEnd
   Streams.write (Just flush) writeEnd
+
+send :: Text -> Snap ()
+send txt = do
+  runSSE (SSEapp f)
+  where
+    f = sendInApp txt
 
 ping :: Tickle -> SSEstream -> IO ()
 ping tickle writeEnd = forever $ do

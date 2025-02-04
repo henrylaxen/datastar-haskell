@@ -1,0 +1,12 @@
+import Data.Time ( getCurrentTime )
+import Data.Text ( pack )
+
+now <- getCurrentTime
+let
+  txt = mconcat [
+    "<div id=\"time\" data-on-interval__duration.5s=\"@get('/endpoint')\">"
+    , (pack . show) now
+    , "</div>" ]
+mergeFragments txt def def def def
+
+
